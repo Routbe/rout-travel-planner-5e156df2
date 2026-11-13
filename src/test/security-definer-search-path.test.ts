@@ -135,3 +135,72 @@ describe("the runner guard inside a migration transaction", () => {
     }
   });
 });
+
+describe("batch 1 functions still run with search_path = pg_catalog (all migrations replayed)", () => {
+  it("resolve every table and helper they touch", async () => {
+    const { btree_gist } = await import("@electric-sql/pglite/contrib/btree_gist");
+    const { pgcrypto } = await import("@electric-sql/pglite/contrib/pgcrypto");
+    const { planMigrations } = await import("../../scripts/migration-plan");
+    const db = new PGlite({ extensions: { pgcrypto, btree_gist } });
+    try {
+      for (const step of planMigrations(listMigrationFiles(DB_DIR), new Set())) {
+        if (step.action === "run") await db.exec(`begin;\n${readFileSync(join(DB_DIR, step.file), "utf8")}\n;commit;`);
+      }
+      // Lookups that a misplaced search_path would break: undefined table, function, type, column or schema.
+      const unresolved = /^42(P01|883|704|703|3F)$/;
+      const id = "00000000-0000-4000-8000-0000000000c1";
+      const calls = [
+        ["select public.rout_card_design('S1')"],
+        ["select public.rout_card_frozen('S1')"],
+        ["select public.rout_card_generation($1::uuid)", id],
+        ["select public.rout_card_status_by_serial('S1')"],
+        ["select public.rout_card_status_by_hardware($1::uuid)", id],
+        ["select public.rout_card_token_use('AAAAAAAAAAAAAAAAAAAAAA', now() + interval '30 seconds')"],
+        ["select public.rout_card_token_use('bad', now())"],
+        ["select public.rout_hw_issue_challenge($1::uuid, repeat('a', 64))", id],
+        ["select * from public.rout_hw_consume_challenge($1::uuid, repeat('a', 64))", id],
+        ["select public.rout_hw_record_scan($1::uuid, true)", id],
+        ["select public.rout_pair_factory_card($1::uuid, repeat('a', 64), 'S1')", id],
+        ["select public.rout_ephemeral_vault_create($1::uuid, 'k', 'h', 'p')", id],
+        ["select * from public.rout_ephemeral_vault_read($1::uuid)", id],
+        ["select * from public.rout_ephemeral_vault_commit($1::uuid, 'h', 'n', 's', 'b', 'k')", id],
+        ["select public.rout_purge_expired_ephemeral_vaults()"],
+        ["select public.signin_guard_status(repeat('b', 32))"],
+        ["select public.signin_guard_record(repeat('b', 32), false)"],
+        ["select public.signin_guard_record(repeat('b', 32), true)"],
+        ["select * from public.rout_resolve_account('@nobody')"],
+        ["select public.email_freeze_owner('x')"],
+        ["select public.delete_account()"],
+      ] as const;
+      const failures: string[] = [];
+      for (const [sql, ...params] of calls) {
+        await db.exec("begin");
+        try {
+          await db.query(sql, [...params]);
+        } catch (error) {
+          const code = (error as { code?: string }).code ?? "";
+          if (unresolved.test(code)) failures.push(`${sql}: ${code} ${(error as Error).message}`);
+        } finally {
+          await db.exec("rollback");
+        }
+      }
+      expect(failures).toEqual([]);
+      expect(calls).toHaveLength(21);
+    } finally {
+      await db.close();
+    }
+  }, 120_000);
+
+  it("would catch an unqualified table under the same setting", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(`create table public.t (x int);
+        create function public.bad() returns bigint language sql security definer set search_path = pg_catalog as $$ select count(*) from public.t $$;`);
+      await expect(db.query("select public.bad()")).resolves.toBeDefined();
+      await db.exec("create or replace function public.bad2() returns bigint language plpgsql security definer set search_path = pg_catalog as $$ begin return (select count(*) from t); end $$;");
+      await expect(db.query("select public.bad2()")).rejects.toMatchObject({ code: "42P01" });
+    } finally {
+      await db.close();
+    }
+  });
+});
