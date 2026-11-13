@@ -255,3 +255,98 @@ describe("batch 1 functions still run with search_path = pg_catalog (all migrati
     }
   }, 60_000);
 });
+
+describe("batch 2 functions run their normal paths with search_path = pg_catalog (all migrations replayed)", () => {
+  it("sandbox, agent workspace, invites, public lookups and parental consent all succeed", async () => {
+    const { btree_gist } = await import("@electric-sql/pglite/contrib/btree_gist");
+    const { pgcrypto } = await import("@electric-sql/pglite/contrib/pgcrypto");
+    const { planMigrations } = await import("../../scripts/migration-plan");
+    const db = new PGlite({ extensions: { pgcrypto, btree_gist } });
+    try {
+      for (const step of planMigrations(listMigrationFiles(DB_DIR), new Set())) {
+        if (step.action === "run") await db.exec(`begin;\n${readFileSync(join(DB_DIR, step.file), "utf8")}\n;commit;`);
+      }
+      const owner = "00000000-0000-4000-8000-0000000000a1";
+      const kid = "00000000-0000-4000-8000-0000000000a2";
+      const h = (c: string) => c.repeat(64);
+      const ws = (prefix: string) => `(select id from public.workspaces where slug like '${prefix}%')`;
+      const slug = (prefix: string) => `(select slug from public.workspaces where slug like '${prefix}%')`;
+      const as = (uid: string) => [`select set_config('rout.current_user_id', $1, true)`, uid] as const;
+      const steps: (readonly [string, ...unknown[]])[] = [
+        ["insert into public.users (id, email) values ($1, 'owner@example.test'), ($2, 'kid@example.test')", owner, kid],
+        as(""),
+        [`select * from public.rout_agent_sandbox_register('${h("a")}', '${h("b")}', 'ip1', 'Agent One')`],
+        [`select * from public.rout_agent_sandbox_context('${h("a")}')`],
+        [`select * from public.rout_agent_sandbox_provision('${h("a")}', 'Agent Space', 'agent-space-x7', 'desc', '${h("c")}', '${h("d")}', '{}'::jsonb)`],
+        [`select * from public.rout_agent_sandbox_patch_draft('${h("a")}', '{"bio":"hi"}'::jsonb, '{"theme":"x"}'::jsonb)`],
+        [`select public.rout_agent_sandbox_set_apps('${h("a")}', '[]'::jsonb)`],
+        [`select * from public.rout_agent_sandbox_state('${h("a")}')`],
+        as(owner),
+        [`select * from public.rout_agent_claim_preview('${h("c")}')`],
+        [`select * from public.rout_claim_agent_workspace_v2('${h("d")}')`],
+        [`select public.rout_is_workspace_member(${ws("agent-space-x7")}) as v`],
+        [`select public.rout_workspace_role(${ws("agent-space-x7")}) as v`],
+        [`select * from public.rout_workspace_team(${ws("agent-space-x7")})`],
+        [`select public.rout_agent_audit_log(${ws("agent-space-x7")}, $1, 'client', 'update', 'profiles', 'p1', '{}'::jsonb, '{}'::jsonb)`, owner],
+        ["select public.rout_agent_audit_mark_reverted((select id from public.agent_audit_logs limit 1))"],
+        [`select * from public.rout_agent_provision_workspace('client-a', 'Second', 'second-space-x7', '', '${h("e")}')`],
+        [`select * from public.rout_claim_agent_workspace('${h("e")}')`],
+        [`select * from public.rout_agent_provision_workspace('client-a', 'Third', 'third-space-x7', '', '${h("f")}')`],
+        [`select public.rout_agent_audit_revert_workspace(${ws("third-space-x7")})`],
+        [`select * from public.rout_agent_provision_workspace('client-a', 'Fourth', 'fourth-space-x7', '', '${h("9")}')`],
+        [`update public.agent_workspace_claims set created_at = created_at - interval '25 hours', expires_at = expires_at - interval '25 hours' where token_hash = '${h("9")}'`],
+        ["select public.rout_purge_unclaimed_agent_workspaces() as v"],
+        ["select public.rout_purge_expired_agent_sandboxes()"],
+        [`insert into public.workspace_invites (workspace_id, email, role, status, invited_by) select id, 'kid@example.test', 'editor', 'pending', $1 from public.workspaces where slug like 'agent-space-x7%'`, owner],
+        as(kid),
+        ["select public.rout_accept_workspace_invites('kid@example.test') as v"],
+        ["select * from public.rout_transfer_by_token('nope')"],
+        ["select * from public.rout_transfers_for_email('kid@example.test')"],
+        [`select public.workspace_may_drop_suffix('free', ${ws("agent-space-x7")})`],
+        [`select * from public.rout_public_workspace(${slug("agent-space-x7")})`],
+        [`select * from public.rout_public_workspace_relme(${slug("agent-space-x7")})`],
+        ["select public.rout_workspace_atproto_did('agent-space-x7', 'example.test')"],
+        ["select public.rout_workspace_slug_for_domain('example.test')"],
+        [`select public.rout_workspace_slug_taken(${slug("agent-space-x7")}) as v`],
+        ["select public.workspace_slug_for_root_alias('agent')"],
+        ["select public.rout_migrated_workspace_for_handle('someone', 'alias')"],
+        ["select public.rout_migrated_workspace_for_handle('someone', 'profile')"],
+        [`select public.rout_record_signup_age('kid@example.test', (current_date - interval '10 years')::date, 'parent@example.test', '${h("8")}') as v`],
+        [`select * from public.rout_parent_lookup('${h("8")}')`],
+        [`select public.rout_parent_set_qa_level('${h("8")}', 'verified_only') as v`],
+        [`select public.rout_parent_approve_consent('${h("8")}') as v`],
+        ["select public.rout_user_is_minor($1) as v", kid],
+        [`select public.rout_parent_request_payment($1, '${h("7")}', '{"item":"pro"}'::jsonb) as v`, kid],
+        [`select public.rout_parent_mark_payment('${h("7")}') as v`],
+      ];
+      const results: Record<string, unknown>[][] = [];
+      await db.exec("begin");
+      try {
+        for (const [sql, ...params] of steps) {
+          const r = await db.query<Record<string, unknown>>(sql, params).catch((error: Error & { code?: string }) => {
+            throw new Error(`${sql}: ${error.code ?? ""} ${error.message}`);
+          });
+          results.push(r.rows);
+        }
+      } finally {
+        await db.exec("rollback");
+      }
+      const v = (fragment: string) => results[steps.findIndex(([sql]) => sql.includes(fragment))]?.[0]?.v;
+      expect(v("rout_is_workspace_member(")).toBe(true);
+      expect(v("rout_workspace_role(")).toBe("owner");
+      expect(v("rout_purge_unclaimed_agent_workspaces(")).toBe(1);
+      expect(v("rout_accept_workspace_invites(")).toBe(1);
+      expect(v("rout_workspace_slug_taken(")).toBe(true);
+      expect(v("rout_record_signup_age(")).toBe(kid);
+      expect(v("rout_parent_set_qa_level(")).toBe(true);
+      expect(v("rout_parent_approve_consent(")).toBe(true);
+      expect(v("rout_user_is_minor(")).toBe(true);
+      expect(v("rout_parent_request_payment(")).toBe("parent@example.test");
+      expect(v("rout_parent_mark_payment(")).toBe(kid);
+      const called = new Set(steps.flatMap(([sql]) => [...sql.matchAll(/public\.(\w+)\(/g)].map((m) => m[1])));
+      for (const key of BATCH_2) expect(called, key).toContain(key.match(/^public\.(\w+)\(/)?.[1]);
+    } finally {
+      await db.close();
+    }
+  }, 180_000);
+});
