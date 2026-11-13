@@ -6,6 +6,10 @@
  *   bun scripts/migrate.ts --baseline=52    mark 00..52 as applied without running
  *   bun scripts/migrate.ts --dry-run        list pending files
  *
+ * From 0255 on every file is linted and, inside its own transaction, followed by
+ * the SECURITY DEFINER guard (scripts/security-definer-policy.ts): a function
+ * without search_path = pg_catalog rolls the migration back.
+ *
  * Refuses to run without MIGRATION_URL or when it equals DATABASE_URL (the
  * runtime role must never be used for DDL, and vice versa).
  */
@@ -13,6 +17,8 @@ import { Pool } from "@neondatabase/serverless";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checksumDrift, checksumOf, listMigrationFiles, migrationNumber, planMigrations } from "./migration-plan";
+import { LEGACY_DEFINER_SEARCH_PATH } from "./security-definer-legacy";
+import { definerGuardSql, definerMigrationViolations, guardedMigration } from "./security-definer-policy";
 
 const url = process.env["MIGRATION_URL"];
 if (!url) {
@@ -65,10 +71,17 @@ try {
       continue;
     }
     const body = readFileSync(join(dir, file), "utf8");
+    const lint = guardedMigration(file) ? definerMigrationViolations(body) : [];
+    if (lint.length > 0) {
+      console.error(`✗ ${file}: ${lint.join("; ")}`);
+      process.exitCode = 1;
+      break;
+    }
     const client = await pool.connect();
     try {
       await client.query("begin");
       await client.query(body);
+      if (guardedMigration(file)) await client.query(definerGuardSql(LEGACY_DEFINER_SEARCH_PATH));
       await client.query(`insert into public.schema_migrations (filename, checksum) values ($1, $2)`, [file, current.get(file)!]);
       await client.query("commit");
       console.log(`✓ ${file}`);
