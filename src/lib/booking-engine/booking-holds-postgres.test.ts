@@ -75,6 +75,9 @@ beforeAll(async () => {
   `);
   await db.exec(readFileSync("db/0220_calendar_events_owner_scope.sql", "utf8"));
   await db.exec(readFileSync("db/0220_calendar_events_owner_scope.sql", "utf8"));
+  // db/0257 pins every booking function to search_path = pg_catalog (as on Neon); applying it twice is harmless.
+  await db.exec(readFileSync("db/0257_definer_search_path_bookings.sql", "utf8"));
+  await db.exec(readFileSync("db/0257_definer_search_path_bookings.sql", "utf8"));
   await db.exec(`
     insert into public.booking_event_types (id, user_id, slug, title, duration_minutes, buffer_after_minutes, minimum_notice_hours, max_days_ahead)
       values ('${SOLO}', '${A}', 'intro', 'Intro', 30, 15, 0, 30);

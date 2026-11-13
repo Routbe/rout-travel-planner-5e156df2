@@ -92,37 +92,76 @@ const BATCH_2 = [
   "public.rout_purge_unclaimed_agent_workspaces()",
 ];
 
+const BATCH_3 = [
+  "public.rout_booking_adjacent_ok(p_host uuid, p_block_start timestamp with time zone, p_block_end timestamp with time zone)",
+  "public.rout_booking_cache_free(p_host uuid, p_from timestamp with time zone, p_to timestamp with time zone)",
+  "public.rout_booking_confirm_paid(p_booking uuid, p_session text)",
+  "public.rout_booking_create(p_event_type uuid, p_start timestamp with time zone, p_guest_name text, p_guest_email text, p_guest_timezone text, p_guest_note text, p_intake jsonb)",
+  "public.rout_booking_create(p_event_type uuid, p_start timestamp with time zone, p_guest_name text, p_guest_email text, p_guest_timezone text, p_guest_note text, p_intake jsonb, p_hold uuid, p_hold_secret text)",
+  "public.rout_booking_due_calendars(p_limit integer)",
+  "public.rout_booking_edge_busy(p_host uuid, p_from timestamp with time zone, p_to timestamp with time zone)",
+  "public.rout_booking_group_ids(p_booking uuid)",
+  "public.rout_booking_guest_view(p_booking uuid, p_token text)",
+  "public.rout_booking_hold(p_event_type uuid, p_start timestamp with time zone, p_client text, p_replace uuid, p_replace_secret text)",
+  "public.rout_booking_hold_release(p_hold uuid, p_secret text)",
+  "public.rout_booking_horizon_end(p_business_days integer, p_max_days integer, p_zone text, p_now timestamp with time zone)",
+  "public.rout_booking_host_free(p_host uuid, p_event_type uuid, p_start timestamp with time zone, p_block_start timestamp with time zone, p_block_end timestamp with time zone, p_capacity integer)",
+  "public.rout_booking_host_free_held(p_host uuid, p_event_type uuid, p_start timestamp with time zone, p_block_start timestamp with time zone, p_block_end timestamp with time zone, p_capacity integer, p_hold uuid)",
+  "public.rout_booking_lock_hosts(p_hosts uuid[], p_from timestamp with time zone, p_to timestamp with time zone)",
+  "public.rout_booking_lock_type(p_event_type uuid, p_start timestamp with time zone)",
+  "public.rout_booking_pick_hosts(p_event_type uuid, p_start timestamp with time zone, p_hold uuid)",
+  "public.rout_booking_public_constraints(p_id uuid, p_from timestamp with time zone, p_to timestamp with time zone, p_hold uuid)",
+  "public.rout_booking_public_days(p_id uuid, p_from date, p_to date)",
+  "public.rout_booking_public_event_type(p_id uuid)",
+  "public.rout_booking_public_sessions(p_id uuid, p_from timestamp with time zone, p_to timestamp with time zone, p_hold uuid)",
+  "public.rout_booking_public_type_for_handle(p_handle text, p_type uuid)",
+  "public.rout_booking_release_expired(p_limit integer)",
+  "public.rout_booking_release_hold(p_booking uuid)",
+  "public.rout_booking_set_checkout(p_booking uuid, p_session text)",
+  "public.rout_booking_stale_hosts(p_id uuid, p_max_age interval)",
+  "public.rout_booking_start_problem(p_event_type uuid, p_start timestamp with time zone)",
+  "public.rout_booking_type_public(p_id uuid)",
+  "public.rout_booking_type_zone(p_event_type uuid)",
+  "public.rout_booking_within_limits(p_event_type uuid, p_host uuid, p_start timestamp with time zone, p_hold uuid)",
+  "public.rout_booking_zone(p_zone text, p_host uuid)",
+];
+
 describe("SECURITY DEFINER functions in the schema snapshot", () => {
   it("are pinned to pg_catalog unless on the legacy list, and the list has no stale entries", () => {
     expect(definers.length).toBeGreaterThan(300);
     expect(definerFindings(definers, LEGACY_DEFINER_SEARCH_PATH)).toEqual([]);
   });
 
-  it("batch 1 (cards, vault, sign-in) and batch 2 (workspaces, parents, agents) are pinned and off the legacy list; 79 remain", () => {
+  it("batches 1 (cards, vault, sign-in), 2 (workspaces, parents, agents) and 3 (bookings) are pinned and off the legacy list; 48 remain", () => {
     expect(BATCH_1).toHaveLength(21);
     expect(BATCH_2).toHaveLength(36);
-    for (const key of [...BATCH_1, ...BATCH_2]) {
+    expect(BATCH_3).toHaveLength(31);
+    for (const key of [...BATCH_1, ...BATCH_2, ...BATCH_3]) {
       expect(definers.find((f) => f.key === key)?.searchPath, key).toEqual(["pg_catalog"]);
       expect(LEGACY_DEFINER_SEARCH_PATH, key).not.toContain(key);
     }
-    expect(LEGACY_DEFINER_SEARCH_PATH).toHaveLength(79);
-    expect(new Set(LEGACY_DEFINER_SEARCH_PATH).size).toBe(79);
+    expect(LEGACY_DEFINER_SEARCH_PATH).toHaveLength(48);
+    expect(new Set(LEGACY_DEFINER_SEARCH_PATH).size).toBe(48);
   });
 
   it("records each hardened batch under its migration, so a fresh replay allows it only until then", () => {
     expect([...HARDENED_BY_MIGRATION[255]!].sort()).toEqual([...BATCH_1].sort());
     expect([...HARDENED_BY_MIGRATION[256]!].sort()).toEqual([...BATCH_2].sort());
+    expect([...HARDENED_BY_MIGRATION[257]!].sort()).toEqual([...BATCH_3].sort());
     const hardened = Object.values(HARDENED_BY_MIGRATION).flat();
     for (const key of hardened) expect(LEGACY_DEFINER_SEARCH_PATH, key).not.toContain(key);
     const after255 = legacyAllowedAfter(255);
     for (const key of BATCH_2) expect(after255, key).toContain(key);
     for (const key of BATCH_1) expect(after255, key).not.toContain(key);
-    expect(legacyAllowedAfter(256)).toEqual(LEGACY_DEFINER_SEARCH_PATH);
+    const after256 = legacyAllowedAfter(256);
+    for (const key of BATCH_3) expect(after256, key).toContain(key);
+    for (const key of BATCH_2) expect(after256, key).not.toContain(key);
+    expect(legacyAllowedAfter(257)).toEqual(LEGACY_DEFINER_SEARCH_PATH);
     const files = listMigrationFiles(DB_DIR);
     for (const n of Object.keys(HARDENED_BY_MIGRATION)) {
       const file = files.find((f) => f.startsWith(`0${n}_`));
       expect(file, n).toBeDefined();
-      const altered = [...readFileSync(join(DB_DIR, file!), "utf8").matchAll(/^alter function public\.(\w+)\(/gm)].map((m) => m[1]).sort();
+      const altered = [...readFileSync(join(DB_DIR, file!), "utf8").matchAll(/^(?:alter|create or replace) function public\.(\w+)\(/gim)].map((m) => m[1]).sort();
       expect(altered, file).toEqual(HARDENED_BY_MIGRATION[Number(n)]!.map((k) => k.match(/^public\.(\w+)\(/)?.[1]).sort());
     }
   });
@@ -155,9 +194,10 @@ describe("SECURITY DEFINER functions in the schema snapshot", () => {
 describe("migration files from 0255 on", () => {
   const guarded = listMigrationFiles(DB_DIR).filter(guardedMigration);
 
-  it("include 0255 and 0256 and none sets a search_path other than pg_catalog", () => {
+  it("include 0255, 0256 and 0257 and none sets a search_path other than pg_catalog", () => {
     expect(guarded).toContain("0255_definer_search_path_cards_vault_auth.sql");
     expect(guarded).toContain("0256_definer_search_path_workspaces_parents_agents.sql");
+    expect(guarded).toContain("0257_definer_search_path_bookings.sql");
     for (const file of guarded) expect(definerMigrationViolations(readFileSync(join(DB_DIR, file), "utf8")), file).toEqual([]);
   });
 
@@ -175,6 +215,19 @@ describe("migration files from 0255 on", () => {
     for (const s of statements) expect(s).toMatch(/^alter function public\.\w+\([^)]*\) set search_path = pg_catalog$/);
     const names = statements.map((s) => s.match(/^alter function public\.(\w+)\(/)?.[1]).sort();
     expect(names).toEqual(BATCH_2.map((k) => k.match(/^public\.(\w+)\(/)?.[1]).sort());
+  });
+
+  it("0257 pins all 31 booking functions; only rout_booking_zone and rout_booking_hold are rewritten", () => {
+    const sql = readFileSync(join(DB_DIR, "0257_definer_search_path_bookings.sql"), "utf8").replace(/^--[^\n]*/gm, "");
+    const alters = [...sql.matchAll(/^alter function public\.(\w+)\([^)]*\) set search_path = pg_catalog;$/gm)].map((m) => m[1]);
+    const creates = [...sql.matchAll(/^CREATE OR REPLACE FUNCTION public\.(\w+)\(/gm)].map((m) => m[1]);
+    expect(alters).toHaveLength(29);
+    expect(creates).toEqual(["rout_booking_zone", "rout_booking_hold"]);
+    expect([...alters, ...creates].sort()).toEqual(BATCH_3.map((k) => k.match(/^public\.(\w+)\(/)?.[1]).sort());
+    // Outside the two function bodies the file changes nothing else: no drop, grant, revoke or data change.
+    expect(sql.replace(/\$function\$[\s\S]*?\$function\$/g, "")).not.toMatch(/\b(drop|grant|revoke|insert|update|delete|truncate|alter table)\b/i);
+    expect(sql).toContain("encode(public.gen_random_bytes(32), 'hex')");
+    expect(sql.match(/pg_catalog\.pg_timezone_names/g)).toHaveLength(2);
   });
 
   it("the lint rejects a definer without pg_catalog and accepts a pinned one", () => {
@@ -363,6 +416,88 @@ describe("batch 2 functions run their normal paths with search_path = pg_catalog
       expect(v("rout_parent_mark_payment(")).toBe(kid);
       const called = new Set(steps.flatMap(([sql]) => [...sql.matchAll(/public\.(\w+)\(/g)].map((m) => m[1])));
       for (const key of BATCH_2) expect(called, key).toContain(key.match(/^public\.(\w+)\(/)?.[1]);
+    } finally {
+      await db.close();
+    }
+  }, 180_000);
+});
+
+describe("batch 3 booking functions after 0257 (all migrations replayed)", () => {
+  it("keep their bodies apart from two qualified names, and a full booking runs with search_path = pg_catalog", async () => {
+    const { btree_gist } = await import("@electric-sql/pglite/contrib/btree_gist");
+    const { pgcrypto } = await import("@electric-sql/pglite/contrib/pgcrypto");
+    const { planMigrations } = await import("../../scripts/migration-plan");
+    const db = new PGlite({ extensions: { pgcrypto, btree_gist } });
+    const BOOKINGS = "0257_definer_search_path_bookings.sql";
+    try {
+      for (const step of planMigrations(listMigrationFiles(DB_DIR), new Set())) {
+        if (step.action === "run" && step.file !== BOOKINGS) await db.exec(`begin;\n${readFileSync(join(DB_DIR, step.file), "utf8")}\n;commit;`);
+      }
+      const defs = async () =>
+        new Map(
+          (await db.query<{ k: string; d: string }>(
+            "select p.oid::regprocedure::text as k, pg_get_functiondef(p.oid) as d from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'rout_booking_%'",
+          )).rows.map((r) => [r.k, r.d]),
+        );
+      const before = await defs();
+      await db.exec(`begin;\n${readFileSync(join(DB_DIR, BOOKINGS), "utf8")}\n;commit;`);
+      const after = await defs();
+      const norm = (d: string) =>
+        d.replace(/^ SET search_path TO .*$/m, "").replace("public.gen_random_bytes(", "gen_random_bytes(").replaceAll("pg_catalog.pg_timezone_names", "pg_timezone_names");
+      expect(after.size).toBe(before.size);
+      for (const [k, d] of before) expect(norm(after.get(k)!), k).toBe(norm(d));
+
+      const host = "00000000-0000-4000-8000-0000000000b1";
+      const free = "00000000-0000-4000-8000-0000000000b2";
+      const paid = "00000000-0000-4000-8000-0000000000b3";
+      const day = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      const bits = "0".repeat(32) + "1".repeat(40) + "0".repeat(24);
+      type J = Record<string, unknown>;
+      const one = async (sql: string, params: unknown[] = []) => {
+        const r = await db.query<{ v: J }>(sql, params).catch((error: Error & { code?: string }) => {
+          throw new Error(`${sql}: ${error.code ?? ""} ${error.message}`);
+        });
+        return r.rows[0]?.v;
+      };
+      await db.exec("begin");
+      try {
+        await one("insert into public.users (id, email) values ($1, 'host@example.test')", [host]);
+        await one("insert into public.profiles (id, username, display_name) values ($1, 'hosty', 'Host') on conflict (id) do update set username = 'hosty'", [host]);
+        await one("insert into public.booking_event_types (id, user_id, slug, title, duration_minutes, minimum_notice_hours, max_days_ahead) values ($1, $2, 'intro', 'Intro', 30, 0, 30)", [free, host]);
+        await one("insert into public.booking_event_types (id, user_id, slug, title, duration_minutes, minimum_notice_hours, max_days_ahead, price_cents, currency) values ($1, $2, 'paid', 'Paid', 30, 0, 30, 1000, 'eur')", [paid, host]);
+        await one("insert into public.booking_event_type_hosts (event_type_id, user_id) values ($1, $3), ($2, $3)", [free, paid, host]);
+        await one("insert into public.availability_cache (user_id, day, free_bits) values ($1, $2::date, $3::bit(96))", [host, day, bits]);
+
+        expect((await one("select public.rout_booking_public_event_type($1) as v", [free]))?.["title"]).toBe("Intro");
+        await one("select public.rout_booking_public_type_for_handle('hosty', null)::text as v");
+        await one("select count(*) as v from public.rout_booking_public_days($1, current_date, current_date + 10)", [free]);
+        await one("select count(*) as v from public.rout_booking_public_sessions($1, now(), now() + interval '7 days', null)", [free]);
+        await one("select count(*) as v from public.rout_booking_public_constraints($1, now(), now() + interval '7 days', null)", [free]);
+        await one("select public.rout_booking_stale_hosts($1, interval '1 hour')::text as v", [free]);
+
+        const held = (await one(`select public.rout_booking_hold($1, '${day}T10:00:00Z', repeat('a', 64), null, null) as v`, [free]))!;
+        expect(held["ok"]).toBe(true);
+        expect(String(held["secret"])).toMatch(/^[a-f0-9]{64}$/);
+        const booked = (await one(`select public.rout_booking_create($1, '${day}T10:00:00Z', 'Ann', 'ann@example.test', 'Europe/Brussels', null, null, $2::uuid, $3) as v`, [free, held["holdId"], held["secret"]]))!;
+        expect(booked["ok"]).toBe(true);
+        const legacy = (await one(`select public.rout_booking_create($1, '${day}T12:00:00Z', 'Bo', 'bo@example.test', 'Europe/Brussels', null, null) as v`, [free]))!;
+        expect(legacy["status"]).toBe("confirmed");
+        const pending = (await one(`select public.rout_booking_create($1, '${day}T14:00:00Z', 'Cy', 'cy@example.test', 'Europe/Brussels', null, null) as v`, [paid]))!;
+        expect(pending["status"]).toBe("pending_payment");
+        const pendingId = (pending["bookingIds"] as string[])[0];
+        expect(await one("select public.rout_booking_set_checkout($1, 'cs_test_12345678') as v", [pendingId])).toBe(true);
+        expect((await one("select public.rout_booking_confirm_paid($1, 'cs_test_12345678') as v", [pendingId]))?.["status"]).toBe("confirmed");
+        expect((await one("select public.rout_booking_guest_view(b.id, b.booking_token) as v from public.bookings b where b.guest_name = 'Bo'"))?.["masked"]).toBe(false);
+        const second = (await one(`select public.rout_booking_hold($1, '${day}T16:00:00Z', repeat('b', 64), null, null) as v`, [free]))!;
+        expect(await one("select public.rout_booking_hold_release($1::uuid, $2) as v", [second["holdId"], second["secret"]])).toBe(true);
+        await one("select public.rout_booking_release_hold($1) as v", [pendingId]);
+        await one("select public.rout_booking_release_expired(10) as v");
+        await one("select count(*) as v from public.rout_booking_due_calendars(10)");
+        expect(await one("select public.rout_booking_zone('Europe/Brussels', $1) as v", [host])).toBe("Europe/Brussels");
+        expect(await one("select public.rout_booking_zone('Not/AZone', $1) as v", [host])).toBe("UTC");
+      } finally {
+        await db.exec("rollback");
+      }
     } finally {
       await db.close();
     }
