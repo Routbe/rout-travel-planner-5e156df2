@@ -74,7 +74,7 @@ Dit draaiboek test wat alleen met echte toestellen, echte kaarten en een echte d
 | 4.6 | Open de kaartlink van 4.4 opnieuw via de geschiedenis van Safari | Geweigerd: een tik is maar één keer bruikbaar |
 | 4.7 | Tik de kaart van iemand anders (of kaart B van een ander account) bij jouw openstaand verzoek | Geweigerd |
 
-Bekend: dit bevestigingsscherm is nu alleen in het Nederlands (zie stap 8).
+Het bevestigingsscherm volgt de gekozen taal (Nederlands, Engels, Frans, Duits); zie stap 8.3.
 
 ## 5. Kaart blokkeren als verloren
 
@@ -110,7 +110,7 @@ Bekend: dit bevestigingsscherm is nu alleen in het Nederlands (zie stap 8).
 | --- | --- | --- |
 | 8.1 | Zet de taal op Engels, Frans en Duits; herhaal 6.1 | Weigerscherm volledig in de gekozen taal |
 | 8.2 | Herhaal 1.1 en 7.1 in elke taal | Geen Nederlandse resten, geen technische sleutels zichtbaar |
-| 8.3 | Open het `/t`-bevestigingsscherm in een andere taal | Bekend: nu nog Nederlands. Noteren, niet als nieuwe fout melden |
+| 8.3 | Zet de taal op Engels, Frans en Duits en herhaal 4.1–4.5 | Bevestigingsscherm, knoppen ("Yes, I confirm" / "Oui, je confirme" / "Ja, ich bestätige") en "Niets bevestigd"-scherm in de gekozen taal. Het zegel "Authentic ROUT Card · Cryptographically Verified" blijft bewust Engels |
 
 ## 9. Na afloop
 
