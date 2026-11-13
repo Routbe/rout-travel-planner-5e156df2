@@ -44,8 +44,12 @@
 - [x] Stap 1a: alleen-lezen analyse van 95/0169/0209/91 (verslag aan eigenaar)
 - [x] Stap 1b: archief in db-archive/, erkende vingerafdrukken in scripts/migration-history-allowlist.ts, controle scripts/migration-history-check.ts (Neon: 251 rijen, 0 afwijkingen)
 - [x] 0254: rout_pairwise_register op search_path = pg_catalog (live op Neon, gecontroleerd)
-- [ ] 136 andere SECURITY DEFINER-functies in public zonder search_path = pg_catalog (88 public, 37 public+pg_temp, 11 pg_catalog+public): in beoordeelde batches herschrijven — wacht op akkoord eigenaar
+- [x] Afdwinging SECURITY DEFINER search_path: krimpende overgangslijst, lint + bewaking in beide runners vanaf 0255, test op snapshot, live controle (scripts/security-definer-check.ts)
+- [x] Batch 1 — kaarten, kluis, inloggen: 21 functies (db/0255, live op Neon, 0 afwijkingen)
+- [ ] Batch 2 — werkruimtes, ouders, agent-sandbox
+- [ ] Batch 3 — boekingen (37 functies met public, pg_temp)
+- [ ] Batch 4 — publieke profielen, korte links, Q&A en overige (tot de overgangslijst leeg is)
 - [x] Briefing in appendix van docs/HANDOVER.md (bijlage B letterlijk, bijlage C controle)
 - [x] QA-testdraaiboek: docs/ROUT-QA-draaiboek.md (kopie in Files)
-- [ ] /t-bevestigingsscherm ("Bevestigen met je ROUT Card?", Ja/Nee, "Niets bevestigd") staat alleen in het Nederlands in src/routes/t.tsx: vertalen naar en/fr/de — wacht op akkoord eigenaar
+- [x] /t-schermen en knoppen in nl/en/fr/de (cardTap.* in interface-bundels); zegel "Authentic ROUT Card" blijft bewust Engels
 - [ ] QA-draaiboek uitvoeren op het Vercel-deploy — eigenaar, met fysieke kaarten en toestellen

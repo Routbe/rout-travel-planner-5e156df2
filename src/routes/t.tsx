@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, ShieldCheck, ShieldX } from "lucide-react";
 import { pendingCardStepUpFn, verifyCardTapFn, type CardTapResult } from "@/lib/wallet/card-tap.functions";
 import { activateCardFn, type CardActivationResult } from "@/lib/wallet/card-admin.functions";
@@ -40,6 +41,7 @@ type View =
   | CardTapResult;
 
 function CardTap() {
+  const { t } = useTranslation();
   const verify = useServerFn(verifyCardTapFn);
   const pendingStepUp = useServerFn(pendingCardStepUpFn);
   const activate = useServerFn(activateCardFn);
@@ -85,10 +87,8 @@ function CardTap() {
       <main className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
         <ShieldCheck className="h-14 w-14 text-primary" strokeWidth={1.5} aria-hidden />
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Bevestigen met je ROUT Card?</h1>
-          <p className="text-sm text-muted-foreground">
-            Er wacht een verzoek om met je ROUT Card te bevestigen. Bevestig alleen als jij die actie net zelf hebt gestart, op dit toestel of op een ander scherm.
-          </p>
+          <h1 className="text-2xl font-semibold">{t("cardTap.confirm.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("cardTap.confirm.body")}</p>
         </div>
         <div className="flex w-full flex-col gap-3">
           <Button
@@ -102,10 +102,10 @@ function CardTap() {
                 .catch(() => setView({ status: "step_up_denied" }));
             }}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : "Ja, ik bevestig"}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : t("cardTap.confirm.yes")}
           </Button>
           <Button variant="outline" className="w-full" disabled={busy} onClick={() => setView({ kind: "step_up_declined" })}>
-            Nee, dit was ik niet
+            {t("cardTap.confirm.no")}
           </Button>
         </div>
       </main>
@@ -115,11 +115,9 @@ function CardTap() {
     return (
       <main className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
         <ShieldX className="h-14 w-14 text-destructive" strokeWidth={1.5} aria-hidden />
-        <h1 className="text-2xl font-semibold">Niets bevestigd</h1>
-        <p className="text-sm text-muted-foreground">
-          Het verzoek vervalt vanzelf binnen 5 minuten. Heb je dit niet zelf gevraagd? Bekijk dan je actieve sessies in je account en meld onbekende toestellen af.
-        </p>
-        <Link to="/studio/account" className="text-sm text-primary underline underline-offset-4">Naar je account</Link>
+        <h1 className="text-2xl font-semibold">{t("cardTap.declined.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("cardTap.declined.body")}</p>
+        <Link to="/studio/account" className="text-sm text-primary underline underline-offset-4">{t("cardTap.toAccount")}</Link>
       </main>
     );
   }
@@ -141,14 +139,14 @@ function CardTap() {
           }}
         >
           <ShieldCheck className="h-14 w-14 text-primary" strokeWidth={1.5} aria-hidden />
-          <h1 className="text-2xl font-semibold">Activeer je ROUT Card</h1>
-          <p className="text-sm text-muted-foreground">Deze kaart wordt aan je ingelogde account gekoppeld. Staat er een activatiecode bij je kaart, vul ze dan in.</p>
+          <h1 className="text-2xl font-semibold">{t("cardTap.activate.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("cardTap.activate.body")}</p>
           <label className="w-full text-left text-sm">
-            <span className="mb-1 block text-muted-foreground">Activatiecode (optioneel)</span>
+            <span className="mb-1 block text-muted-foreground">{t("cardTap.activate.code")}</span>
             <Input value={code} onChange={(e) => setCode(e.target.value)} maxLength={32} autoComplete="off" autoCapitalize="characters" spellCheck={false} />
           </label>
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : "Kaart koppelen"}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : t("cardTap.activate.submit")}
           </Button>
         </form>
       </main>
@@ -160,21 +158,21 @@ function CardTap() {
         {view.activation === "activated" ? (
           <>
             <ShieldCheck className="h-14 w-14 text-primary" strokeWidth={1.5} aria-hidden />
-            <h1 className="text-2xl font-semibold">Je ROUT Card is actief</h1>
-            <p className="text-sm text-muted-foreground">De kaart is nu aan je account gekoppeld.</p>
+            <h1 className="text-2xl font-semibold">{t("cardTap.activated.title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("cardTap.activated.body")}</p>
           </>
         ) : (
           <>
             <ShieldX className="h-14 w-14 text-destructive" strokeWidth={1.5} aria-hidden />
-            <h1 className="text-2xl font-semibold">{view.activation === "limited" ? "Even wachten" : "Niet gekoppeld"}</h1>
+            <h1 className="text-2xl font-semibold">{view.activation === "limited" ? t("cardTap.wait.title") : t("cardTap.activateFailed.title")}</h1>
             <p className="text-sm text-muted-foreground">
               {view.activation === "limited"
-                ? "Te veel pogingen kort na elkaar. Probeer het later opnieuw."
-                : "Deze kaart kon niet gekoppeld worden. Ben je ingelogd, is de kaart nog niet gekoppeld en klopt de code? Start opnieuw via je account en tik de kaart opnieuw."}
+                ? t("cardTap.activateLimited.body")
+                : t("cardTap.activateFailed.body")}
             </p>
           </>
         )}
-        <Link to="/studio/account" className="text-xs text-muted-foreground hover:text-foreground">Naar je account</Link>
+        <Link to="/studio/account" className="text-xs text-muted-foreground hover:text-foreground">{t("cardTap.toAccount")}</Link>
       </main>
     );
   }
@@ -184,7 +182,7 @@ function CardTap() {
       {"kind" in view && view.kind === "checking" ? (
         <div role="status" className="flex flex-col items-center gap-4">
           <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">Kaart wordt gecontroleerd…</p>
+          <p className="text-sm text-muted-foreground">{t("cardTap.checking")}</p>
         </div>
       ) : "status" in view && view.status === "verified" ? (
         <section aria-labelledby="tap-verified" className="flex w-full flex-col items-center gap-5">
@@ -198,35 +196,35 @@ function CardTap() {
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">Cryptographically Verified</p>
           </div>
           <div className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm text-muted-foreground">
-            <p>De chip bewees net met zijn eigen geheime sleutel dat hij echt is. Deze tik is eenmalig: een gekopieerde link werkt niet opnieuw.</p>
-            {!view.activated && <p className="mt-2">Deze kaart is nog niet aan een lid gekoppeld.</p>}
+            <p>{t("cardTap.verified.body")}</p>
+            {!view.activated && <p className="mt-2">{t("cardTap.verified.unlinked")}</p>}
           </div>
         </section>
       ) : "status" in view && view.status === "step_up_confirmed" ? (
         <section aria-labelledby="tap-step-up" className="flex w-full flex-col items-center gap-4">
           <ShieldCheck className="h-14 w-14 text-primary" strokeWidth={1.5} aria-hidden />
-          <h1 id="tap-step-up" className="text-2xl font-semibold">Bevestigd met je ROUT Card</h1>
-          <p className="text-sm text-muted-foreground">Ga terug naar het scherm waar je om bevestiging werd gevraagd. Het gaat daar vanzelf verder.</p>
+          <h1 id="tap-step-up" className="text-2xl font-semibold">{t("cardTap.stepUpConfirmed.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("cardTap.stepUpConfirmed.body")}</p>
         </section>
       ) : "status" in view && view.status === "step_up_denied" ? (
         <section className="flex flex-col items-center gap-4">
           <ShieldX className="h-14 w-14 text-destructive" strokeWidth={1.5} aria-hidden />
-          <h1 className="text-2xl font-semibold">Niet bevestigd</h1>
-          <p className="text-sm text-muted-foreground">Deze tik kon je bevestiging niet afronden. Gebruik je eigen, actieve ROUT Card, houd ze opnieuw tegen je telefoon, of begin opnieuw als de tijd verstreken is.</p>
+          <h1 className="text-2xl font-semibold">{t("cardTap.notConfirmed.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("cardTap.stepUpDenied.body")}</p>
         </section>
       ) : "status" in view && view.status === "limited" ? (
         <section className="flex flex-col items-center gap-3">
-          <h1 className="text-2xl font-semibold">Even wachten</h1>
-          <p className="text-sm text-muted-foreground">Te veel controles kort na elkaar. Probeer het zo opnieuw.</p>
+          <h1 className="text-2xl font-semibold">{t("cardTap.wait.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("cardTap.tapLimited.body")}</p>
         </section>
       ) : (
         <section className="flex flex-col items-center gap-4">
           <ShieldX className="h-14 w-14 text-destructive" strokeWidth={1.5} aria-hidden />
-          <h1 className="text-2xl font-semibold">Niet bevestigd</h1>
+          <h1 className="text-2xl font-semibold">{t("cardTap.notConfirmed.title")}</h1>
           <p className="text-sm text-muted-foreground">
             {"kind" in view && view.kind === "missing"
-              ? "Open deze pagina door je ROUT Card tegen je telefoon te houden."
-              : "Deze tik kon niet bevestigd worden. Houd de kaart opnieuw tegen je telefoon; een gekopieerde of oude link werkt nooit."}
+              ? t("cardTap.missing.body")
+              : t("cardTap.denied.body")}
           </p>
         </section>
       )}

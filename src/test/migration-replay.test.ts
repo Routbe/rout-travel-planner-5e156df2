@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { listMigrationFiles, planMigrations } from "../../scripts/migration-plan";
 import { diffCatalogs, readCatalog, type Catalog } from "../../scripts/schema-catalog";
+import { LEGACY_DEFINER_SEARCH_PATH } from "../../scripts/security-definer-legacy";
+import { definerGuardSql, guardedMigration } from "../../scripts/security-definer-policy";
 
 const DB_DIR = join(__dirname, "..", "..", "db");
 
@@ -23,7 +25,8 @@ describe("migrations on an empty database", () => {
       if (step.action !== "run") continue;
       const body = readFileSync(join(DB_DIR, step.file), "utf8");
       try {
-        await db.exec(`begin;\n${body}\n;commit;`);
+        const guard = guardedMigration(step.file) ? `;\n${definerGuardSql(LEGACY_DEFINER_SEARCH_PATH)}` : "";
+        await db.exec(`begin;\n${body}\n${guard};commit;`);
       } catch (error) {
         await db.exec("rollback").catch(() => undefined);
         throw new Error(`${step.file}: ${error instanceof Error ? error.message : String(error)}`);

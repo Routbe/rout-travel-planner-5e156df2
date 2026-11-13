@@ -13,6 +13,8 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { listMigrationFiles, planMigrations } from "./migration-plan";
+import { LEGACY_DEFINER_SEARCH_PATH } from "./security-definer-legacy";
+import { definerGuardSql, guardedMigration } from "./security-definer-policy";
 import { catalogJson, readCatalog, renderDbTypes } from "./schema-catalog";
 
 const root = join(import.meta.dir, "..");
@@ -23,7 +25,8 @@ for (const step of planMigrations(listMigrationFiles(DB_DIR), new Set())) {
   if (step.action !== "run") continue;
   const body = readFileSync(join(DB_DIR, step.file), "utf8");
   try {
-    await db.exec(`begin;\n${body}\n;commit;`);
+    const guard = guardedMigration(step.file) ? `;\n${definerGuardSql(LEGACY_DEFINER_SEARCH_PATH)}` : "";
+    await db.exec(`begin;\n${body}\n${guard};commit;`);
   } catch (error) {
     throw new Error(`${step.file}: ${error instanceof Error ? error.message : String(error)}`);
   }
