@@ -47,4 +47,5 @@
 - [ ] 136 andere SECURITY DEFINER-functies in public zonder search_path = pg_catalog (88 public, 37 public+pg_temp, 11 pg_catalog+public): in beoordeelde batches herschrijven — wacht op akkoord eigenaar
 - [x] Briefing in appendix van docs/HANDOVER.md (bijlage B letterlijk, bijlage C controle)
 - [x] QA-testdraaiboek: docs/ROUT-QA-draaiboek.md (kopie in Files)
+- [ ] /t-bevestigingsscherm ("Bevestigen met je ROUT Card?", Ja/Nee, "Niets bevestigd") staat alleen in het Nederlands in src/routes/t.tsx: vertalen naar en/fr/de — wacht op akkoord eigenaar
 - [ ] QA-draaiboek uitvoeren op het Vercel-deploy — eigenaar, met fysieke kaarten en toestellen
