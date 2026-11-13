@@ -6,6 +6,7 @@
  * list in scripts/security-definer-legacy.ts.
  */
 import { migrationNumber } from "./migration-plan";
+import { legacyAllowedAfter } from "./security-definer-legacy";
 
 /** Migrations from this number on are linted and guarded; older files are immutable history. */
 export const DEFINER_GUARD_FROM = 255;
@@ -102,3 +103,6 @@ begin
   end if;
 end $definer_guard$`;
 }
+
+/** The guard to run right after `file`: allows the legacy list plus what later migrations still pin. */
+export const migrationDefinerGuardSql = (file: string) => definerGuardSql(legacyAllowedAfter(migrationNumber(file)));

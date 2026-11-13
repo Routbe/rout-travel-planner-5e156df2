@@ -17,8 +17,7 @@ import { Pool } from "@neondatabase/serverless";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checksumDrift, checksumOf, listMigrationFiles, migrationNumber, planMigrations } from "./migration-plan";
-import { LEGACY_DEFINER_SEARCH_PATH } from "./security-definer-legacy";
-import { definerGuardSql, definerMigrationViolations, guardedMigration } from "./security-definer-policy";
+import { migrationDefinerGuardSql, definerMigrationViolations, guardedMigration } from "./security-definer-policy";
 
 const url = process.env["MIGRATION_URL"];
 if (!url) {
@@ -81,7 +80,7 @@ try {
     try {
       await client.query("begin");
       await client.query(body);
-      if (guardedMigration(file)) await client.query(definerGuardSql(LEGACY_DEFINER_SEARCH_PATH));
+      if (guardedMigration(file)) await client.query(migrationDefinerGuardSql(file));
       await client.query(`insert into public.schema_migrations (filename, checksum) values ($1, $2)`, [file, current.get(file)!]);
       await client.query("commit");
       console.log(`✓ ${file}`);
