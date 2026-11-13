@@ -39,3 +39,9 @@
 - [x] Admin portal refuses non-admins in the UI itself (adminAccessDecision + AdminForbidden screen, nl/en/fr/de); server checks unchanged
 - [x] /studio/booking lands on the bookings page: /studio accepts page=booking (src/lib/studio-page-param.ts) and Studio opens bookings from that routed value
 - [ ] Signed-in click-through of the admin refusal screen and the bookings page: owner verifies on the Vercel deploy (no DATABASE_URL requested for the preview)
+
+## Migratie-synchronisatie (2026-11-13)
+- [x] Stap 1a: alleen-lezen analyse van 95/0169/0209/91 (verslag aan eigenaar)
+- [ ] Stap 1b: gelijktrekken — wacht op akkoord eigenaar over de voorgestelde oplossing
+- [ ] Briefing in appendix van docs/HANDOVER.md
+- [ ] QA-testdraaiboek in Files
