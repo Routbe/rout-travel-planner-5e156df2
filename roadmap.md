@@ -34,3 +34,8 @@
 - [x] Station registry (0248) + HPKE-wrapped batch key export on /admin/cards, logged via mark_sdm_batch_exported
 - [x] db/0249 (drop station-less export marker) moved into db/ after production reported 0248
 - [x] db/0250 card tap as step-up factor (EXPAND, live on Neon)
+
+## Admin portal and Studio routing
+- [x] Admin portal refuses non-admins in the UI itself (adminAccessDecision + AdminForbidden screen, nl/en/fr/de); server checks unchanged
+- [x] /studio/booking lands on the bookings page: /studio accepts page=booking (src/lib/studio-page-param.ts) and Studio opens bookings from that routed value
+- [ ] Signed-in click-through of both screens in the preview once the app database connection (DATABASE_URL, rout_app) is set
