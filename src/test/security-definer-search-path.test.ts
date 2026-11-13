@@ -133,7 +133,7 @@ describe("the runner guard inside a migration transaction", () => {
     } finally {
       await db.close();
     }
-    }, 60_000);
+  }, 60_000);
 });
 
 describe("batch 1 functions still run with search_path = pg_catalog (all migrations replayed)", () => {
@@ -202,5 +202,5 @@ describe("batch 1 functions still run with search_path = pg_catalog (all migrati
     } finally {
       await db.close();
     }
-    }, 60_000);
+  }, 60_000);
 });
