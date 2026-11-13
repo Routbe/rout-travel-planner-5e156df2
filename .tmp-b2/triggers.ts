@@ -1,8 +1,8 @@
 import { PGlite } from "@electric-sql/pglite";
 import { btree_gist } from "@electric-sql/pglite/contrib/btree_gist";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
-const blob = Bun.file("/tmp/b2/replayed.tar.gz");
-const db = new PGlite({ loadDataDir: new Blob([await blob.arrayBuffer()]), extensions: { pgcrypto, btree_gist } });
+import { replayed } from "./replaylib";
+const db = await replayed();
 const base = ['workspace_invites','workspace_members','agent_audit_logs','workspaces','agent_workspace_claims','agent_sandboxes','workspace_profile_drafts','parent_authorizations','users','oauth_clients','tracked_qrs','bookings','workspace_transfers'];
 const r = await db.query(`
 with recursive t(oid) as (
