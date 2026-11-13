@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { listMigrationFiles } from "../../scripts/migration-plan";
-import { LEGACY_DEFINER_SEARCH_PATH } from "../../scripts/security-definer-legacy";
+import { HARDENED_BY_MIGRATION, LEGACY_DEFINER_SEARCH_PATH, legacyAllowedAfter } from "../../scripts/security-definer-legacy";
 import {
   definerFindings,
   definerGuardSql,
@@ -107,6 +107,24 @@ describe("SECURITY DEFINER functions in the schema snapshot", () => {
     }
     expect(LEGACY_DEFINER_SEARCH_PATH).toHaveLength(79);
     expect(new Set(LEGACY_DEFINER_SEARCH_PATH).size).toBe(79);
+  });
+
+  it("records each hardened batch under its migration, so a fresh replay allows it only until then", () => {
+    expect([...HARDENED_BY_MIGRATION[255]!].sort()).toEqual([...BATCH_1].sort());
+    expect([...HARDENED_BY_MIGRATION[256]!].sort()).toEqual([...BATCH_2].sort());
+    const hardened = Object.values(HARDENED_BY_MIGRATION).flat();
+    for (const key of hardened) expect(LEGACY_DEFINER_SEARCH_PATH, key).not.toContain(key);
+    const after255 = legacyAllowedAfter(255);
+    for (const key of BATCH_2) expect(after255, key).toContain(key);
+    for (const key of BATCH_1) expect(after255, key).not.toContain(key);
+    expect(legacyAllowedAfter(256)).toEqual(LEGACY_DEFINER_SEARCH_PATH);
+    const files = listMigrationFiles(DB_DIR);
+    for (const n of Object.keys(HARDENED_BY_MIGRATION)) {
+      const file = files.find((f) => f.startsWith(`0${n}_`));
+      expect(file, n).toBeDefined();
+      const altered = [...readFileSync(join(DB_DIR, file!), "utf8").matchAll(/^alter function public\.(\w+)\(/gm)].map((m) => m[1]).sort();
+      expect(altered, file).toEqual(HARDENED_BY_MIGRATION[Number(n)]!.map((k) => k.match(/^public\.(\w+)\(/)?.[1]).sort());
+    }
   });
 
   it("vault_enclave has no exception at all", () => {
