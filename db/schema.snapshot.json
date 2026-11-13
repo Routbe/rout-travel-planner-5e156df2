@@ -29508,7 +29508,7 @@
       "schema": "public",
       "name": "rout_pairwise_register",
       "args": "p_sub text, p_sector_hash text, p_public_key text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_pairwise_register(p_sub text, p_sector_hash text, p_public_key text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  insert into public.pairwise_subjects (sub, sector_hash, public_key) values (p_sub, p_sector_hash, p_public_key)\n  on conflict (sub) do nothing;\n  return exists (select 1 from public.pairwise_subjects where sub = p_sub and sector_hash = p_sector_hash and public_key = p_public_key);\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_pairwise_register(p_sub text, p_sector_hash text, p_public_key text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  insert into public.pairwise_subjects (sub, sector_hash, public_key) values (p_sub, p_sector_hash, p_public_key)\n  on conflict (sub) do nothing;\n  return exists (\n    select 1 from public.pairwise_subjects\n     where sub = p_sub and sector_hash = p_sector_hash and public_key = p_public_key\n  );\nend $function$"
     },
     {
       "schema": "public",
