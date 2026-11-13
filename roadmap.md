@@ -42,6 +42,9 @@
 
 ## Migratie-synchronisatie (2026-11-13)
 - [x] Stap 1a: alleen-lezen analyse van 95/0169/0209/91 (verslag aan eigenaar)
-- [ ] Stap 1b: gelijktrekken — wacht op akkoord eigenaar over de voorgestelde oplossing
-- [ ] Briefing in appendix van docs/HANDOVER.md
-- [ ] QA-testdraaiboek in Files
+- [x] Stap 1b: archief in db-archive/, erkende vingerafdrukken in scripts/migration-history-allowlist.ts, controle scripts/migration-history-check.ts (Neon: 251 rijen, 0 afwijkingen)
+- [x] 0254: rout_pairwise_register op search_path = pg_catalog (live op Neon, gecontroleerd)
+- [ ] 136 andere SECURITY DEFINER-functies in public zonder search_path = pg_catalog (88 public, 37 public+pg_temp, 11 pg_catalog+public): in beoordeelde batches herschrijven — wacht op akkoord eigenaar
+- [x] Briefing in appendix van docs/HANDOVER.md (bijlage B letterlijk, bijlage C controle)
+- [x] QA-testdraaiboek: docs/ROUT-QA-draaiboek.md (kopie in Files)
+- [ ] QA-draaiboek uitvoeren op het Vercel-deploy — eigenaar, met fysieke kaarten en toestellen

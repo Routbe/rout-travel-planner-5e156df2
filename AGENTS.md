@@ -69,6 +69,9 @@ use the editor.
 ## Neon database access
 - The app runtime connects only through the DATABASE_URL secret (rout_app login); the owner-level Neon connection stays unlinked from the project and is used solely by the agent for reviewed schema work. Why: a linked NEON_API_KEY makes the gateway transport win over DATABASE_URL, so preview would diverge from the Vercel runtime.
 
+## Migration history
+- Every row in public.schema_migrations must match a file in db/ or an entry in scripts/migration-history-allowlist.ts carrying Neon's exact checksum; check with scripts/migration-history-check.ts and never rewrite Neon's rows. Why: history drift stays visible without falsifying what actually ran.
+
 ## Staged database lockdowns
 - CONTRACT migrations that remove legacy access wait in db-pending/ until production runs the code using the matching EXPAND functions, then move into db/. Why: every file in db/ is replayed by the runners, so a premature contract would break the live deployment.
 - The public health probe reports CODE_SCHEMA_LEVEL (src/lib/schema-version.ts, kept equal to the highest db/ migration by a test); a held-back contract is applied only once production reports at least the level of its EXPAND migration. Why: it is the only outside proof of which code a deployment runs.
