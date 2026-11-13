@@ -110,3 +110,73 @@ Bijlage — controle tegen de code (2026-11-13; de tekst hierboven is ongewijzig
 - `bun test` start de testrunner van Bun; de projectsuite draait met Vitest via `bun run test` (`vitest run`).
 - Openstaand punt 1 (iOS-hertest van "Ja, ik bevestig" op `/t`): door de eigenaar bevestigd als werkend op 2026-11-13.
 - Neon op 2026-11-13: `public.schema_migrations` bevat alles t/m 0253. Twee geregistreerde bestanden bestaan niet meer in `db/` (`95_question_stories.sql`, `0169_workspace_icon.sql`) en twee bestanden wijken af van hun geregistreerde checksum (`0209_recovery_vault_pairwise.sql`, `91_shadowban.sql`).
+- Gezondheidsstatus: `/api/public/health` geeft het veld `schema` terug (niet `schema_level`), naast `status` en `latency_ms`.
+
+---
+
+Bijlage B — tweede briefing van de eigenaar (2026-11-13, letterlijk overgenomen)
+
+Wat je hierna kunt doen, hangt af van je planning. Hier is een overzicht van de logische volgende stappen en openstaande onderdelen die we bewust hadden geparkeerd:
+
+1. Fysieke Praktijktests (E2E)
+
+Nu alles live staat op Vercel en Neon, is het tijd om de theorie in de praktijk te brengen:
+
+NFC-taps testen: Voer een echte test uit met je fysieke NXP NTAG 424 DNA kaarten op een Android-toestel en via de /t fallback-route op een iPhone (inclusief de nieuwe "Ja, ik bevestig" / "Nee, dit was ik niet" knoppen).
+
+Account-flows controleren: Loop op je eigen Vercel-omgeving een volledige registratie (met passkey) en inlogcyclus door.
+
+2. Externe Diensten & Commerciële Integratie (Toekomstige Fase)
+
+Zoals eerder afgesproken, waren deze diensten even geparkeerd tot de core stabiel was. Zodra je toe bent aan een bredere of commerciële uitrol, kun je deze toevoegen:
+
+Stripe: Voor het verwerken van betalingen en abonnementen.
+
+Scaleway: Voor object-storage (zoals grotere media-bestanden en foto's).
+
+Apple & Google Wallet: Het genereren en integreren van digitale kluispassen.
+
+Externe OAuth: Het inschakelen van optionele inlogopties zoals Google, GitHub of Apple ID (naast de primaire passkeys).
+
+3. Productie-monitoring & Onderhoud
+
+Het in de gaten houden van de Vercel-builds en de prestaties van de rout_app-functies in Neon naarmate je meer gebruikers of kaarten activeert.
+
+# MASTER HANDOVER & PROJECT BRIEFING: ROUT (Sovereign Identity OS)
+
+## 1. Project Context & Doel
+
+Je werkt aan **ROUT** (rout.be), een open-source (AGPL-3.0) *Sovereign Digital Identity OS*. Het platform biedt één verenigde identiteit met profielen, werkruimtes, QR-studio, korte links met analytics, agenda's/boekingen, betalingen, een fysieke ROUT Card met NFC-validatie, en een ontwikkelaarsconsole. De core-filosofie is **Zero-Trust, privacy-by-design, passkey-only en Europese data-soevereiniteit**.
+
+## 2. Technische Architectuur & Stack
+
+- **Frontend / Hosting:** Vercel (SPA / SSR met Vites/React, strenge TypeScript typechecks).
+- **Database:** Neon PostgreSQL. De app draait **strikt** onder de beperkte rol `rout_app` (nooit als eigenaar/admin). Database-migraties lopen t/m schemaversie **0253**.
+- **Authenticatie:** Better Auth met **passkey-only** afgedwongen op serverniveau. Wachtwoorden, e-maillinks of traditionele OAuth-methodes voor registratie zijn uitgeschakeld.
+- **Crypto & Vault:** Gevoelige data is versleuteld in een afgeschermde kluis in de database (client-side versleuteling, HPKE/RFC 9180 standaarden). Herstel werkt via een 2-van-3 mechanisme.
+- **Hardware / NFC:** Integratie met NXP NTAG 424 DNA kaarten voor hardware-MFA (Step-Up authenticatie) met SDM (Secure Dynamic Messaging), voorzien van een anti-hijacking "Ja/Nee" bevestigingsstap op `/t`.
+
+## 3. Huidige Status & Gerealiseerde Mijlpalen (t/m Migratie 0253)
+
+- **Database & Migraties:** Migraties `0250` t/m `0253` zijn atomair en foutloos doorgevoerd op Neon. Dit omvat de logboek-fixes voor kaarttiks, publieke avatar-leesfuncties (`rout_public_avatar`), en het slim opruimen van logo's (`rout_prune_avatar_uploads`) waarbij actieve werkruimte- en profielfoto's permanent beschermd zijn.
+- **Passkey-hardening:** Registratie zonder passkey wordt op serverniveau onherroepelijk geweigerd.
+- **NFC Step-Up & Kaartlevenscyclus:** Fysieke kaarttiks dienen als hardware-MFA voor gevoelige acties. Het blokkeren of vervangen van een kaart ("verloren") trekt de fysieke chip direct en cryptografisch in.
+- **UI & Routing Security:** De beheeromgeving weigert niet-beheerders direct in de client-interface zelf via `adminAccessDecision` (met meertalige "Geen toegang"-pagina's) en de doorverwijzing van `/studio/booking` werkt feilloos via schone router-parameters (`/studio?page=booking`).
+
+## 4. Belangrijke Regels & Richtlijnen voor de Ontwikkeling
+
+1. **Lees eerst `docs/HANDOVER.md`:** Elke wijziging aan beveiliging, kluis, kaarten, inloggen of migraties vereist dat dit dossier vooraf wordt gerespecteerd.
+2. **Database-rechten:** Voer nooit schemawijzigingen uit als de eigenaar als de app (`rout_app`) moet opereren; respecteer de functierechten en RLS.
+3. **Geen zwakke crypto of fallbacks:** Behoud de moderne standaarden (passkeys, HPKE, sterke hashing). Geen achterdeurtjes of onbeveiligde fallback-flows.
+4. **Meertaligheid:** Alle nieuwe UI-elementen en foutmeldingen moeten direct worden voorzien van vertalingen in het Nederlands, Engels, Frans en Duits.
+
+---
+
+Bijlage C — controle van bijlage B tegen code en Neon (2026-11-13; bijlage B is ongewijzigd overgenomen)
+
+- Schemaversie: Neon en de code staan nu op **0254** (`0254_pairwise_register_search_path.sql`), niet 0253.
+- Inloggen versus registreren: het aanmaken van een account kan alleen met een passkey (`runPasskeyAccountCreation`; de `user.create.before`-hook weigert elke andere weg). Google, GitHub, GitLab en Apple staan al in `src/lib/better-auth.server.ts` als **inlogmethode** met `disableSignUp: true`; ze worden actief zodra hun sleutels in de omgeving staan. Ook e-mail + wachtwoord en magic link bestaan als inlogmethode, met registratie uit. "Externe OAuth inschakelen" betekent dus: sleutels zetten voor inloggen of koppelen op een bestaand account, nooit een nieuwe registratieweg.
+- Regel 2 (database-rechten) betekent in de praktijk: schemawijzigingen lopen alleen als eigenaar via de migratierunners of de beoordeelde agent-verbinding; de app zelf draait alleen als `rout_app`, die geen objecten in `public` en geen tijdelijke tabellen mag aanmaken (gecontroleerd in Neon op 2026-11-13).
+- Migratiegeschiedenis (stap 1b, uitgevoerd 2026-11-13): de vier afwijkingen (`95_question_stories.sql`, `0169_workspace_icon.sql`, `0209_recovery_vault_pairwise.sql`, `91_shadowban.sql`) staan met hun exacte Neon-vingerafdruk in `scripts/migration-history-allowlist.ts`; de twee verdwenen bestanden zijn uitgelegd in `db-archive/`. `bun scripts/migration-history-check.ts` vergelijkt elke rij in `public.schema_migrations` met `db/` en die lijst: 251 rijen, 0 afwijkingen na 0254. Geen enkele vingerafdruk in Neon is overschreven.
+- 0254: `public.rout_pairwise_register` draait nu met `search_path = pg_catalog` (live gecontroleerd: eigenaar `neondb_owner`, EXECUTE alleen voor `rout_app`, definitie gelijk aan `db/schema.snapshot.json`).
+- Open bevinding: in Neon draaien nog **136 andere SECURITY DEFINER-functies** in `public` zonder `search_path = pg_catalog` (89 met `public`, 37 met `public, pg_temp`, 10 met `pg_catalog, public`). Ze breken de regel uit dit dossier. Het directe risico is klein omdat `rout_app` geen objecten in `public` en geen tijdelijke tabellen kan aanmaken, maar ze moeten in beoordeelde batches worden herschreven (zie `roadmap.md`).
