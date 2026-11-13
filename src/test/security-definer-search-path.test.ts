@@ -179,7 +179,6 @@ describe("batch 1 functions still run with search_path = pg_catalog (all migrati
           await db.query(sql, [...params]);
         } catch (error) {
           const code = (error as { code?: string }).code ?? "";
-          if (process.env["DEFINER_SMOKE_DEBUG"]) console.log(sql, code, (error as Error).message);
           if (unresolved.test(code)) failures.push(`${sql}: ${code} ${(error as Error).message}`);
         } finally {
           await db.exec("rollback");
