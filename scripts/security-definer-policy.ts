@@ -34,8 +34,10 @@ function splitPath(value: string): string[] {
 
 export const isPinned = (path: readonly string[] | null) => path !== null && path.length === 1 && path[0] === "pg_catalog";
 
+/** Header of a pg_get_functiondef text (everything before the body) says SECURITY DEFINER. */
 export function isSecurityDefinerDef(def: string): boolean {
-  return /^\s*(?:\w+\s+)*SECURITY DEFINER\b/m.test(def.slice(0, def.indexOf("$function$") < 0 ? undefined : def.indexOf("$function$")));
+  const body = def.search(/^AS /m);
+  return /\bSECURITY DEFINER\b/.test(body < 0 ? def : def.slice(0, body));
 }
 
 /** Unpinned definers not on the legacy list, and legacy entries that no longer need to be there. */
@@ -52,25 +54,25 @@ export function definerFindings(fns: readonly DefinerFn[], legacy: readonly stri
   return out;
 }
 
+const PATH_VALUE = String.raw`((?:'[^']*'|"[^"]*"|[\w$]+)(?:\s*,\s*(?:'[^']*'|"[^"]*"|[\w$]+))*)`;
+const SET_PATH = new RegExp(String.raw`\bset\s+(?:local\s+|session\s+)?search_path\s*(?:=|to)\s*` + PATH_VALUE, "gi");
+
 /**
- * Static lint of one migration file: every CREATE FUNCTION header marked
- * SECURITY DEFINER sets search_path = pg_catalog, and every search_path the
- * file sets on a function is exactly pg_catalog.
+ * Static lint of one migration file: every CREATE FUNCTION marked SECURITY
+ * DEFINER sets search_path = pg_catalog in its header, and every search_path
+ * the file sets (function header, ALTER FUNCTION, SET LOCAL) is exactly pg_catalog.
  */
 export function definerMigrationViolations(sql: string): string[] {
   const src = sql.replace(/--[^\n]*/g, "");
   const out: string[] = [];
-  const header = /create\s+(?:or\s+replace\s+)?function\s+([\w."]+)\s*\(([\s\S]*?)\bas\s+(\$\w*\$|')/gi;
+  const header = /create\s+(?:or\s+replace\s+)?function\s+([\w."]+)\s*\(([\s\S]*?)\bas\s+(?:\$\w*\$|')/gi;
   for (const m of src.matchAll(header)) {
-    const head = m[0];
-    if (!/\bsecurity\s+definer\b/i.test(head)) continue;
-    if (!/\bset\s+search_path\s*(?:=|to)\s*'?pg_catalog'?\s+(?:language|security|stable|volatile|immutable|strict|returns|parallel|cost|rows|set|as)\b/i.test(`${head.replace(/\bas\s+(\$\w*\$|')$/i, "")} as`)) {
-      out.push(`${m[1]}: SECURITY DEFINER without set search_path = pg_catalog`);
-    }
+    if (!/\bsecurity\s+definer\b/i.test(m[0])) continue;
+    const paths = [...m[0].matchAll(SET_PATH)].map((p) => splitPath(p[1]!));
+    if (paths.length === 0 || !paths.every(isPinned)) out.push(`${m[1]}: SECURITY DEFINER without set search_path = pg_catalog`);
   }
-  for (const m of src.matchAll(/\bset\s+search_path\s*(?:=|to)\s*([^;\n$]+?)(?=\s+(?:language|security|stable|volatile|immutable|strict|returns|parallel|cost|rows|as)\b|;|\n|$)/gi)) {
-    const path = splitPath(m[1]!);
-    if (!isPinned(path)) out.push(`search_path set to "${m[1]!.trim()}" instead of pg_catalog`);
+  for (const m of src.matchAll(SET_PATH)) {
+    if (!isPinned(splitPath(m[1]!))) out.push(`search_path set to ${m[1]!.trim()} instead of pg_catalog`);
   }
   return out;
 }
@@ -83,7 +85,7 @@ export const guardedMigration = (file: string) => migrationNumber(file) >= DEFIN
  * is unpinned and not on the legacy list.
  */
 export function definerGuardSql(legacy: readonly string[]): string {
-  const list = legacy.map((k) => `'${k.replace(/'/g, "''")}'`).join(",\n      ");
+  const list = legacy.length === 0 ? "'{}'::text[]" : `array[\n      ${legacy.map((k) => `'${k.replace(/'/g, "''")}'`).join(",\n      ")}\n    ]::text[]`;
   return `do $definer_guard$
 declare bad text;
 begin
@@ -94,9 +96,7 @@ begin
        and n.nspname not in ('pg_catalog', 'information_schema')
        and not exists (select 1 from pg_catalog.pg_depend d where d.classid = 'pg_catalog.pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
        and not ('search_path=pg_catalog' = any (coalesce(p.proconfig, '{}'::text[])))
-  ) x where k <> all (array[
-      ${list || "null"}
-    ]::text[]);
+  ) x where k <> all (${list});
   if bad is not null then
     raise exception 'SECURITY DEFINER without search_path = pg_catalog: %', bad using errcode = '42501';
   end if;
