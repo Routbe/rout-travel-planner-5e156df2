@@ -1,8 +1,8 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Loader2, LogOut, ShieldCheck } from "lucide-react";
+import { Loader2, LogOut, ShieldCheck, ShieldX } from "lucide-react";
 
 import { AdminPortalContext } from "@/components/admin/AdminPortalNav";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 /** Admins see the portal only once 2FA is on; the server enforces the same rule on every admin call. */
 function AdminPortalLayout() {
   const fetchAccess = useServerFn(myAdminPermissions);
-  const access = useQuery({ queryKey: ["admin-access"], queryFn: () => fetchAccess(), staleTime: 60_000 });
+  const access = useQuery({ queryKey: ["admin-access"], queryFn: () => fetchAccess(), staleTime: 60_000, retry: false });
 
   if (access.isLoading) {
     return (
@@ -31,7 +31,10 @@ function AdminPortalLayout() {
   }
   const data = access.data;
   const isAdmin = Boolean(data && (data.fullAdmin || data.permissions.length > 0));
-  if (data && adminAccessDecision(isAdmin, data.twoFactorEnabled) === "two_factor_setup_required") {
+  // No data (error or refusal) counts as no access: non-admins never see an admin screen.
+  const decision = data && !access.isError ? adminAccessDecision(isAdmin, data.twoFactorEnabled) : "forbidden";
+  if (decision === "forbidden") return <AdminForbidden />;
+  if (decision === "two_factor_setup_required") {
     return <AdminTwoFactorRequired onEnabled={() => void access.refetch()} />;
   }
 
@@ -39,6 +42,23 @@ function AdminPortalLayout() {
     <AdminPortalContext.Provider value={true}>
       <Outlet />
     </AdminPortalContext.Provider>
+  );
+}
+
+function AdminForbidden() {
+  const { t } = useTranslation();
+  return (
+    <AppLayout>
+      <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center bg-background p-4 text-foreground">
+        <div role="alert" className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-7">
+          <h1 className="flex items-center gap-2 font-display text-2xl text-foreground">
+            <ShieldX className="h-5 w-5 text-destructive" aria-hidden /> {t("admin.forbidden.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground">{t("admin.forbidden.body")}</p>
+          <Button asChild className="w-full"><Link to="/dashboard">{t("admin.forbidden.back")}</Link></Button>
+        </div>
+      </div>
+    </AppLayout>
   );
 }
 

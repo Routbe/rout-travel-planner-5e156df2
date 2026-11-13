@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/router-compat";
 import { useQuery } from "@tanstack/react-query";
+import { useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProfileEditor, type ProfileVariant } from "@/components/dashboard/ProfileEditor";
@@ -50,9 +51,10 @@ export default function Studio({ initialGrid = false }: { initialGrid?: boolean 
     const qs = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
   }, [t]);
+  const searchPage = (useSearch({ strict: false }) as { page?: unknown }).page;
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("page") === "booking") setPageMode("booking");
-  }, []);
+    if (searchPage === "booking") setPageMode("booking");
+  }, [searchPage]);
   // Onthoud per gebruiker welk profiel (privé of geverifieerd) laatst open was: meteen uit deze
   // browser, daarna bevestigd door de accountvoorkeur zodat elk toestel hetzelfde profiel opent.
   const variantKey = user ? `rout:studio-variant:${user.id}` : null;

@@ -208,5 +208,8 @@
   "console.billing.limitsText": "Überschreitet eine API-Anfrage ein Limit, erhältst du eine 429 mit Retry-After-Header. Warte so viele Sekunden, bevor du es erneut versuchst.",
   "console.billing.fairUseTitle": "Fair Use",
   "console.billing.fairUseText": "Nutze die API für echte Integrationen und Automatisierung. Bei übermäßiger Last, Scraping oder verdächtigem Verkehr kann ROUT den Zugang sofort drosseln, aussetzen oder entziehen.",
-  "console.billing.termsLink": "API-Nutzungsbedingungen lesen"
+  "console.billing.termsLink": "API-Nutzungsbedingungen lesen",
+  "admin.forbidden.title": "Kein Zugriff auf die Verwaltung",
+  "admin.forbidden.body": "Dieser Bereich von ROUT ist nur für Administratoren. Dein Konto hat keine Administratorrechte.",
+  "admin.forbidden.back": "Zurück zu deinem Dashboard"
 }
