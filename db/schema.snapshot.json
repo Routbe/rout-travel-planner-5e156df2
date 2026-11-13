@@ -28236,7 +28236,7 @@
       "schema": "public",
       "name": "delete_account",
       "args": "",
-      "def": "CREATE OR REPLACE FUNCTION public.delete_account()\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  uid uuid := auth.uid();\nbegin\n  if uid is null then raise exception 'Not signed in'; end if;\n  delete from public.saved_qrs where user_id = uid;\n  delete from public.tracked_qrs where user_id = uid;\n  delete from public.api_keys where user_id = uid;\n  delete from public.custom_domains where user_id = uid;\n  delete from public.notifications where user_id = uid;\n  delete from public.user_badges where user_id = uid;\n  delete from public.profiles where id = uid;\nend;\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.delete_account()\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  uid uuid := auth.uid();\nbegin\n  if uid is null then raise exception 'Not signed in'; end if;\n  delete from public.saved_qrs where user_id = uid;\n  delete from public.tracked_qrs where user_id = uid;\n  delete from public.api_keys where user_id = uid;\n  delete from public.custom_domains where user_id = uid;\n  delete from public.notifications where user_id = uid;\n  delete from public.user_badges where user_id = uid;\n  delete from public.profiles where id = uid;\nend;\n$function$"
     },
     {
       "schema": "public",
@@ -28272,7 +28272,7 @@
       "schema": "public",
       "name": "email_freeze_owner",
       "args": "token_hash text",
-      "def": "CREATE OR REPLACE FUNCTION public.email_freeze_owner(token_hash text)\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select user_id from public.account_email_changes where freeze_token_hash=token_hash and recovery_until>now() and frozen_at is null limit 1\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.email_freeze_owner(token_hash text)\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select user_id from public.account_email_changes where freeze_token_hash=token_hash and recovery_until>now() and frozen_at is null limit 1\n$function$"
     },
     {
       "schema": "public",
@@ -28344,7 +28344,7 @@
       "schema": "public",
       "name": "handle_new_user",
       "args": "",
-      "def": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  insert into public.profiles (id, email, display_name, created_at, updated_at)\n  values (\n    new.id,\n    new.email,\n    nullif(new.user_metadata ->> 'full_name', ''),\n    now(),\n    now()\n  )\n  on conflict (id) do nothing;\n  return new;\nend\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  insert into public.profiles (id, email, display_name, created_at, updated_at)\n  values (\n    new.id,\n    new.email,\n    nullif(new.user_metadata ->> 'full_name', ''),\n    now(),\n    now()\n  )\n  on conflict (id) do nothing;\n  return new;\nend\n$function$"
     },
     {
       "schema": "public",
@@ -28938,37 +28938,37 @@
       "schema": "public",
       "name": "rout_card_design",
       "args": "s text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_card_design(s text)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select cmf from public.card_designs where serial = s $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_card_design(s text)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$ select cmf from public.card_designs where serial = s $function$"
     },
     {
       "schema": "public",
       "name": "rout_card_frozen",
       "args": "s text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_card_frozen(s text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select exists (select 1 from public.card_freezes where serial = s) $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_card_frozen(s text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$ select exists (select 1 from public.card_freezes where serial = s) $function$"
     },
     {
       "schema": "public",
       "name": "rout_card_generation",
       "args": "u uuid",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_card_generation(u uuid)\n RETURNS integer\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select coalesce((select generation from public.rout_card_generations where user_id = u), 0) $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_card_generation(u uuid)\n RETURNS integer\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$ select coalesce((select generation from public.rout_card_generations where user_id = u), 0) $function$"
     },
     {
       "schema": "public",
       "name": "rout_card_status_by_hardware",
       "args": "hid uuid",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_card_status_by_hardware(hid uuid)\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select case when k.status = 'active' and k.public_key is not null\n    and k.key_alg in ('Ed25519','P-256') and k.card_serial is not null\n    and public.rout_card_status_by_serial(k.card_serial) = 'active'\n    then 'active' else 'frozen' end\n  from public.physical_keys k where k.hardware_id = hid\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_card_status_by_hardware(hid uuid)\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select case when k.status = 'active' and k.public_key is not null\n    and k.key_alg in ('Ed25519','P-256') and k.card_serial is not null\n    and public.rout_card_status_by_serial(k.card_serial) = 'active'\n    then 'active' else 'frozen' end\n  from public.physical_keys k where k.hardware_id = hid\n$function$"
     },
     {
       "schema": "public",
       "name": "rout_card_status_by_serial",
       "args": "s text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_card_status_by_serial(s text)\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select case\n    when exists(select 1 from public.card_freezes where serial = s and blocked) then 'blocked'\n    when exists(select 1 from public.card_freezes where serial = s) then 'frozen'\n    when exists(select 1 from public.physical_keys where card_serial = s and status <> 'active') then 'frozen'\n    else 'active' end\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_card_status_by_serial(s text)\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select case\n    when exists(select 1 from public.card_freezes where serial = s and blocked) then 'blocked'\n    when exists(select 1 from public.card_freezes where serial = s) then 'frozen'\n    when exists(select 1 from public.physical_keys where card_serial = s and status <> 'active') then 'frozen'\n    else 'active' end\n$function$"
     },
     {
       "schema": "public",
       "name": "rout_card_token_use",
       "args": "n text, exp timestamp with time zone",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_card_token_use(n text, exp timestamp with time zone)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare inserted integer;\nbegin\n  if n is null or n !~ '^[A-Za-z0-9_-]{22}$' or exp is null or exp <= now()\n     or exp > now() + interval '60 seconds' then\n    insert into public.audit_logs(event) values ('qr_expired');\n    return false;\n  end if;\n  delete from public.used_nonces where expires_at < now() - interval '5 minutes';\n  insert into public.used_nonces(nonce, expires_at) values(n, exp) on conflict do nothing;\n  get diagnostics inserted = row_count;\n  insert into public.audit_logs(event) values(case when inserted = 1 then 'qr_verified' else 'qr_replayed' end);\n  return inserted = 1;\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_card_token_use(n text, exp timestamp with time zone)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare inserted integer;\nbegin\n  if n is null or n !~ '^[A-Za-z0-9_-]{22}$' or exp is null or exp <= now()\n     or exp > now() + interval '60 seconds' then\n    insert into public.audit_logs(event) values ('qr_expired');\n    return false;\n  end if;\n  delete from public.used_nonces where expires_at < now() - interval '5 minutes';\n  insert into public.used_nonces(nonce, expires_at) values(n, exp) on conflict do nothing;\n  get diagnostics inserted = row_count;\n  insert into public.audit_logs(event) values(case when inserted = 1 then 'qr_verified' else 'qr_replayed' end);\n  return inserted = 1;\nend $function$"
     },
     {
       "schema": "public",
@@ -29052,19 +29052,19 @@
       "schema": "public",
       "name": "rout_ephemeral_vault_commit",
       "args": "p_vault_id uuid, p_vault_hash text, p_name text, p_slug text, p_blob text, p_key_id text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_ephemeral_vault_commit(p_vault_id uuid, p_vault_hash text, p_name text, p_slug text, p_blob text, p_key_id text)\n RETURNS TABLE(workspace_id uuid, slug text)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare v_uid uuid := public.rout_current_user_id(); v_vault public.ephemeral_vaults%rowtype; v_ws uuid;\nbegin\n  if v_uid is null then raise exception 'not_authenticated'; end if;\n  select * into v_vault from public.ephemeral_vaults v where v.vault_id = p_vault_id for update;\n  if not found then raise exception 'vault_not_found'; end if;\n  if v_vault.expires_at <= now() then raise exception 'vault_expired'; end if;\n  if v_vault.vault_hash <> p_vault_hash then raise exception 'vault_proof_invalid'; end if;\n  if exists (select 1 from public.workspaces w where w.slug = lower(p_slug)) then raise exception 'slug_taken'; end if;\n\n  insert into public.workspaces (name, slug, plan, encrypted_config, encrypted_config_key_id)\n  values (p_name, lower(p_slug), 'free', p_blob, p_key_id)\n  returning id into v_ws;\n  insert into public.workspace_members (workspace_id, user_id, role) values (v_ws, v_uid, 'owner');\n  delete from public.ephemeral_vaults v where v.vault_id = p_vault_id;\n  return query select v_ws, lower(p_slug);\nend; $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_ephemeral_vault_commit(p_vault_id uuid, p_vault_hash text, p_name text, p_slug text, p_blob text, p_key_id text)\n RETURNS TABLE(workspace_id uuid, slug text)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare v_uid uuid := public.rout_current_user_id(); v_vault public.ephemeral_vaults%rowtype; v_ws uuid;\nbegin\n  if v_uid is null then raise exception 'not_authenticated'; end if;\n  select * into v_vault from public.ephemeral_vaults v where v.vault_id = p_vault_id for update;\n  if not found then raise exception 'vault_not_found'; end if;\n  if v_vault.expires_at <= now() then raise exception 'vault_expired'; end if;\n  if v_vault.vault_hash <> p_vault_hash then raise exception 'vault_proof_invalid'; end if;\n  if exists (select 1 from public.workspaces w where w.slug = lower(p_slug)) then raise exception 'slug_taken'; end if;\n\n  insert into public.workspaces (name, slug, plan, encrypted_config, encrypted_config_key_id)\n  values (p_name, lower(p_slug), 'free', p_blob, p_key_id)\n  returning id into v_ws;\n  insert into public.workspace_members (workspace_id, user_id, role) values (v_ws, v_uid, 'owner');\n  delete from public.ephemeral_vaults v where v.vault_id = p_vault_id;\n  return query select v_ws, lower(p_slug);\nend; $function$"
     },
     {
       "schema": "public",
       "name": "rout_ephemeral_vault_create",
       "args": "p_vault_id uuid, p_key_hash text, p_vault_hash text, p_payload text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_ephemeral_vault_create(p_vault_id uuid, p_key_hash text, p_vault_hash text, p_payload text)\n RETURNS timestamp with time zone\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare v_sandbox uuid; v_open integer; v_now timestamptz := now();\nbegin\n  select s.id into v_sandbox from public.agent_sandboxes s\n   where s.key_hash = p_key_hash and s.revoked_at is null and s.expires_at > v_now;\n  if v_sandbox is null then raise exception 'sandbox_invalid'; end if;\n  perform pg_advisory_xact_lock(hashtext('ephemeral_vault:' || v_sandbox::text));\n  delete from public.ephemeral_vaults v where v.expires_at <= v_now;\n  select count(*) into v_open from public.ephemeral_vaults v where v.sandbox_id = v_sandbox;\n  if v_open >= 5 then raise exception 'vault_quota_reached'; end if;\n  insert into public.ephemeral_vaults (vault_id, vault_hash, encrypted_payload, sandbox_id, created_at, expires_at)\n  values (p_vault_id, p_vault_hash, p_payload, v_sandbox, v_now, v_now + interval '1 hour');\n  return v_now + interval '1 hour';\nend; $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_ephemeral_vault_create(p_vault_id uuid, p_key_hash text, p_vault_hash text, p_payload text)\n RETURNS timestamp with time zone\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare v_sandbox uuid; v_open integer; v_now timestamptz := now();\nbegin\n  select s.id into v_sandbox from public.agent_sandboxes s\n   where s.key_hash = p_key_hash and s.revoked_at is null and s.expires_at > v_now;\n  if v_sandbox is null then raise exception 'sandbox_invalid'; end if;\n  perform pg_advisory_xact_lock(hashtext('ephemeral_vault:' || v_sandbox::text));\n  delete from public.ephemeral_vaults v where v.expires_at <= v_now;\n  select count(*) into v_open from public.ephemeral_vaults v where v.sandbox_id = v_sandbox;\n  if v_open >= 5 then raise exception 'vault_quota_reached'; end if;\n  insert into public.ephemeral_vaults (vault_id, vault_hash, encrypted_payload, sandbox_id, created_at, expires_at)\n  values (p_vault_id, p_vault_hash, p_payload, v_sandbox, v_now, v_now + interval '1 hour');\n  return v_now + interval '1 hour';\nend; $function$"
     },
     {
       "schema": "public",
       "name": "rout_ephemeral_vault_read",
       "args": "p_vault_id uuid",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_ephemeral_vault_read(p_vault_id uuid)\n RETURNS TABLE(vault_hash text, encrypted_payload text, expires_at timestamp with time zone)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select v.vault_hash, v.encrypted_payload, v.expires_at\n    from public.ephemeral_vaults v\n   where public.rout_current_user_id() is not null\n     and v.vault_id = p_vault_id and v.expires_at > now()\n   limit 1\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_ephemeral_vault_read(p_vault_id uuid)\n RETURNS TABLE(vault_hash text, encrypted_payload text, expires_at timestamp with time zone)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select v.vault_hash, v.encrypted_payload, v.expires_at\n    from public.ephemeral_vaults v\n   where public.rout_current_user_id() is not null\n     and v.vault_id = p_vault_id and v.expires_at > now()\n   limit 1\n$function$"
     },
     {
       "schema": "public",
@@ -29136,19 +29136,19 @@
       "schema": "public",
       "name": "rout_hw_consume_challenge",
       "args": "hid uuid, nh text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_hw_consume_challenge(hid uuid, nh text)\n RETURNS TABLE(public_key text, key_alg text, status text)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if public.rout_card_status_by_hardware(hid) is distinct from 'active' then return; end if;\n  delete from public.hardware_challenges c where c.nonce_hash = nh and c.hardware_id = hid and c.expires_at > now();\n  if not found then return; end if;\n  return query select k.public_key, k.key_alg, k.status from public.physical_keys k\n    where k.hardware_id = hid and k.status = 'active';\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_hw_consume_challenge(hid uuid, nh text)\n RETURNS TABLE(public_key text, key_alg text, status text)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  if public.rout_card_status_by_hardware(hid) is distinct from 'active' then return; end if;\n  delete from public.hardware_challenges c where c.nonce_hash = nh and c.hardware_id = hid and c.expires_at > now();\n  if not found then return; end if;\n  return query select k.public_key, k.key_alg, k.status from public.physical_keys k\n    where k.hardware_id = hid and k.status = 'active';\nend $function$"
     },
     {
       "schema": "public",
       "name": "rout_hw_issue_challenge",
       "args": "hid uuid, nh text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_hw_issue_challenge(hid uuid, nh text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if public.rout_card_status_by_hardware(hid) is distinct from 'active'\n     or nh is null or nh !~ '^[a-f0-9]{64}$' then return false; end if;\n  delete from public.hardware_challenges where expires_at < now();\n  insert into public.hardware_challenges(nonce_hash, hardware_id, expires_at)\n    values(nh, hid, now() + interval '30 seconds') on conflict do nothing;\n  return found;\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_hw_issue_challenge(hid uuid, nh text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  if public.rout_card_status_by_hardware(hid) is distinct from 'active'\n     or nh is null or nh !~ '^[a-f0-9]{64}$' then return false; end if;\n  delete from public.hardware_challenges where expires_at < now();\n  insert into public.hardware_challenges(nonce_hash, hardware_id, expires_at)\n    values(nh, hid, now() + interval '30 seconds') on conflict do nothing;\n  return found;\nend $function$"
     },
     {
       "schema": "public",
       "name": "rout_hw_record_scan",
       "args": "hid uuid, ok boolean",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_hw_record_scan(hid uuid, ok boolean)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  update public.physical_keys set last_scanned_at = now() where hardware_id = hid and ok;\n  insert into public.physical_key_events (hardware_id, user_id, event)\n    select hid, k.user_id, case when ok then 'verified' else 'rejected' end from public.physical_keys k where k.hardware_id = hid;\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_hw_record_scan(hid uuid, ok boolean)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  update public.physical_keys set last_scanned_at = now() where hardware_id = hid and ok;\n  insert into public.physical_key_events (hardware_id, user_id, event)\n    select hid, k.user_id, case when ok then 'verified' else 'rejected' end from public.physical_keys k where k.hardware_id = hid;\nend $function$"
     },
     {
       "schema": "public",
@@ -29502,7 +29502,7 @@
       "schema": "public",
       "name": "rout_pair_factory_card",
       "args": "hid uuid, proof_hash text, serial text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_pair_factory_card(hid uuid, proof_hash text, serial text)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare uid uuid := public.rout_current_user_id();\ndeclare item public.factory_card_inventory%rowtype;\nbegin\n  if uid is null then return null; end if;\n  select * into item from public.factory_card_inventory\n    where hardware_id = hid and activation_hash = proof_hash\n      and status = 'pending' and user_id is null for update;\n  if not found then return null; end if;\n  -- Key and algorithm come exclusively from factory inventory, not the client.\n  insert into public.physical_keys\n    (hardware_id, user_id, card_serial, nfc_uid, public_key, key_alg, status)\n    values (item.hardware_id, uid, serial, item.nfc_uid, item.public_key, item.key_alg, 'active');\n  update public.factory_card_inventory set status = 'active', user_id = uid,\n    paired_at = now(), activation_hash = repeat('0', 64) where hardware_id = hid;\n  return hid;\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_pair_factory_card(hid uuid, proof_hash text, serial text)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare uid uuid := public.rout_current_user_id();\ndeclare item public.factory_card_inventory%rowtype;\nbegin\n  if uid is null then return null; end if;\n  select * into item from public.factory_card_inventory\n    where hardware_id = hid and activation_hash = proof_hash\n      and status = 'pending' and user_id is null for update;\n  if not found then return null; end if;\n  -- Key and algorithm come exclusively from factory inventory, not the client.\n  insert into public.physical_keys\n    (hardware_id, user_id, card_serial, nfc_uid, public_key, key_alg, status)\n    values (item.hardware_id, uid, serial, item.nfc_uid, item.public_key, item.key_alg, 'active');\n  update public.factory_card_inventory set status = 'active', user_id = uid,\n    paired_at = now(), activation_hash = repeat('0', 64) where hardware_id = hid;\n  return hid;\nend $function$"
     },
     {
       "schema": "public",
@@ -29592,7 +29592,7 @@
       "schema": "public",
       "name": "rout_physical_key_audit",
       "args": "",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_physical_key_audit()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if tg_op = 'INSERT' then\n    insert into public.physical_key_events (hardware_id, user_id, event) values (new.hardware_id, new.user_id, 'provisioned');\n  elsif new.status is distinct from old.status then\n    insert into public.physical_key_events (hardware_id, user_id, event) values (\n      new.hardware_id, new.user_id,\n      case new.status when 'active' then (case old.status when 'frozen' then 'unfrozen' else 'activated' end)\n                      when 'frozen' then 'frozen' else 'revoked' end);\n  end if;\n  -- A revoked key never comes back.\n  if tg_op = 'UPDATE' and old.status = 'revoked' and new.status <> 'revoked' then\n    raise exception 'revoked keys cannot be reactivated' using errcode = '42501';\n  end if;\n  return new;\nend $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_physical_key_audit()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  if tg_op = 'INSERT' then\n    insert into public.physical_key_events (hardware_id, user_id, event) values (new.hardware_id, new.user_id, 'provisioned');\n  elsif new.status is distinct from old.status then\n    insert into public.physical_key_events (hardware_id, user_id, event) values (\n      new.hardware_id, new.user_id,\n      case new.status when 'active' then (case old.status when 'frozen' then 'unfrozen' else 'activated' end)\n                      when 'frozen' then 'frozen' else 'revoked' end);\n  end if;\n  -- A revoked key never comes back.\n  if tg_op = 'UPDATE' and old.status = 'revoked' and new.status <> 'revoked' then\n    raise exception 'revoked keys cannot be reactivated' using errcode = '42501';\n  end if;\n  return new;\nend $function$"
     },
     {
       "schema": "public",
@@ -29784,7 +29784,7 @@
       "schema": "public",
       "name": "rout_purge_expired_ephemeral_vaults",
       "args": "",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_purge_expired_ephemeral_vaults()\n RETURNS integer\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  with d as (delete from public.ephemeral_vaults v where v.expires_at <= now() returning 1)\n  select count(*)::integer from d\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_purge_expired_ephemeral_vaults()\n RETURNS integer\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  with d as (delete from public.ephemeral_vaults v where v.expires_at <= now() returning 1)\n  select count(*)::integer from d\n$function$"
     },
     {
       "schema": "public",
@@ -29928,7 +29928,7 @@
       "schema": "public",
       "name": "rout_resolve_account",
       "args": "p_identifier text",
-      "def": "CREATE OR REPLACE FUNCTION public.rout_resolve_account(p_identifier text)\n RETURNS TABLE(user_id uuid, email text, username text)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select u.id, u.email, p.username from public.users u left join public.profiles p on p.id = u.id\n  where public.rout_current_user_id() is not null and u.account_status = 'active'\n    and (lower(p.username) = lower(ltrim(p_identifier, '@')) or u.email_normalized = lower(p_identifier))\n  limit 1 $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.rout_resolve_account(p_identifier text)\n RETURNS TABLE(user_id uuid, email text, username text)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select u.id, u.email, p.username from public.users u left join public.profiles p on p.id = u.id\n  where public.rout_current_user_id() is not null and u.account_status = 'active'\n    and (lower(p.username) = lower(ltrim(p_identifier, '@')) or u.email_normalized = lower(p_identifier))\n  limit 1 $function$"
     },
     {
       "schema": "public",
@@ -30288,13 +30288,13 @@
       "schema": "public",
       "name": "signin_guard_record",
       "args": "_identity_hash text, _success boolean",
-      "def": "CREATE OR REPLACE FUNCTION public.signin_guard_record(_identity_hash text, _success boolean)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare r public.signin_throttle; new_failures int; lock_for interval;\nbegin\n  if _identity_hash is null or length(_identity_hash) not between 16 and 128 then\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n\n  if _success then\n    delete from public.signin_throttle where identity_hash = _identity_hash;\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n\n  select * into r from public.signin_throttle where identity_hash = _identity_hash for update;\n\n  if r.identity_hash is null or r.window_started_at < now() - interval '15 minutes' then\n    insert into public.signin_throttle (identity_hash, failures, window_started_at, locked_until)\n    values (_identity_hash, 1, now(), null)\n    on conflict (identity_hash) do update\n      set failures = 1, window_started_at = now(), locked_until = null;\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n\n  new_failures := r.failures + 1;\n  lock_for := case\n    when new_failures >= 10 then interval '15 minutes'\n    when new_failures >= 7 then interval '5 minutes'\n    when new_failures >= 5 then interval '1 minute'\n    else null end;\n\n  update public.signin_throttle\n     set failures = new_failures,\n         locked_until = case when lock_for is null then null else now() + lock_for end\n   where identity_hash = _identity_hash;\n\n  delete from public.signin_throttle\n   where window_started_at < now() - interval '1 day'\n     and (locked_until is null or locked_until < now());\n\n  if lock_for is null then\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n  return jsonb_build_object('locked', true,\n    'retry_after', ceil(extract(epoch from lock_for))::int);\nend;\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.signin_guard_record(_identity_hash text, _success boolean)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare r public.signin_throttle; new_failures int; lock_for interval;\nbegin\n  if _identity_hash is null or length(_identity_hash) not between 16 and 128 then\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n\n  if _success then\n    delete from public.signin_throttle where identity_hash = _identity_hash;\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n\n  select * into r from public.signin_throttle where identity_hash = _identity_hash for update;\n\n  if r.identity_hash is null or r.window_started_at < now() - interval '15 minutes' then\n    insert into public.signin_throttle (identity_hash, failures, window_started_at, locked_until)\n    values (_identity_hash, 1, now(), null)\n    on conflict (identity_hash) do update\n      set failures = 1, window_started_at = now(), locked_until = null;\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n\n  new_failures := r.failures + 1;\n  lock_for := case\n    when new_failures >= 10 then interval '15 minutes'\n    when new_failures >= 7 then interval '5 minutes'\n    when new_failures >= 5 then interval '1 minute'\n    else null end;\n\n  update public.signin_throttle\n     set failures = new_failures,\n         locked_until = case when lock_for is null then null else now() + lock_for end\n   where identity_hash = _identity_hash;\n\n  delete from public.signin_throttle\n   where window_started_at < now() - interval '1 day'\n     and (locked_until is null or locked_until < now());\n\n  if lock_for is null then\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n  return jsonb_build_object('locked', true,\n    'retry_after', ceil(extract(epoch from lock_for))::int);\nend;\n$function$"
     },
     {
       "schema": "public",
       "name": "signin_guard_status",
       "args": "_identity_hash text",
-      "def": "CREATE OR REPLACE FUNCTION public.signin_guard_status(_identity_hash text)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare r public.signin_throttle;\nbegin\n  select * into r from public.signin_throttle where identity_hash = _identity_hash;\n  if r.identity_hash is null or r.locked_until is null or r.locked_until <= now() then\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n  return jsonb_build_object('locked', true,\n    'retry_after', greatest(1, ceil(extract(epoch from (r.locked_until - now())))::int));\nend;\n$function$"
+      "def": "CREATE OR REPLACE FUNCTION public.signin_guard_status(_identity_hash text)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare r public.signin_throttle;\nbegin\n  select * into r from public.signin_throttle where identity_hash = _identity_hash;\n  if r.identity_hash is null or r.locked_until is null or r.locked_until <= now() then\n    return jsonb_build_object('locked', false, 'retry_after', 0);\n  end if;\n  return jsonb_build_object('locked', true,\n    'retry_after', greatest(1, ceil(extract(epoch from (r.locked_until - now())))::int));\nend;\n$function$"
     },
     {
       "schema": "public",
