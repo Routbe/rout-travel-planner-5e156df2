@@ -11,8 +11,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checksumDrift, checksumOf, listMigrationFiles, planMigrations, splitSql } from "./migration-plan";
-import { LEGACY_DEFINER_SEARCH_PATH } from "./security-definer-legacy";
-import { definerGuardSql, definerMigrationViolations, guardedMigration } from "./security-definer-policy";
+import { migrationDefinerGuardSql, definerMigrationViolations, guardedMigration } from "./security-definer-policy";
 
 const URL_ = "https://connector-gateway.lovable.dev/neon/sql";
 async function q(body: unknown): Promise<any> {
@@ -68,7 +67,7 @@ for (const step of planMigrations(files, done)) {
     const guarded = guardedMigration(file);
     const lint = guarded ? definerMigrationViolations(body) : [];
     if (lint.length > 0) throw new Error(lint.join("; "));
-    const guard = guarded ? [{ query: definerGuardSql(LEGACY_DEFINER_SEARCH_PATH), params: [] }] : [];
+    const guard = guarded ? [{ query: migrationDefinerGuardSql(file), params: [] }] : [];
     await q({ queries: [...splitSql(body).map((query) => ({ query, params: [] })), ...guard, record(file)] });
     console.log(`✓ ${file}`);
   } catch (e) {
