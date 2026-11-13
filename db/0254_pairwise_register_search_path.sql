@@ -1,5 +1,5 @@
 -- 0254: rout_pairwise_register runs with search_path = pg_catalog.
---  * 0209 created it as SECURITY DEFINER with search_path = 'public'. Every
+--  * 0209 created it as SECURITY DEFINER pinned to the public schema. Every
 --    SECURITY DEFINER function must pin search_path to pg_catalog, so nothing
 --    the caller can place on the path is ever resolved inside it.
 --  * Same signature, body and behaviour: first registration wins, a subject
