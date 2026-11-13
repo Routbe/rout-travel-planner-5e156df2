@@ -224,7 +224,8 @@ describe("migration files from 0255 on", () => {
     expect(alters).toHaveLength(29);
     expect(creates).toEqual(["rout_booking_zone", "rout_booking_hold"]);
     expect([...alters, ...creates].sort()).toEqual(BATCH_3.map((k) => k.match(/^public\.(\w+)\(/)?.[1]).sort());
-    expect(sql).not.toMatch(/\b(drop|grant|revoke|insert|update|delete|truncate)\s/i);
+    // Outside the two function bodies the file changes nothing else: no drop, grant, revoke or data change.
+    expect(sql.replace(/\$function\$[\s\S]*?\$function\$/g, "")).not.toMatch(/\b(drop|grant|revoke|insert|update|delete|truncate|alter table)\b/i);
     expect(sql).toContain("encode(public.gen_random_bytes(32), 'hex')");
     expect(sql.match(/pg_catalog\.pg_timezone_names/g)).toHaveLength(2);
   });
