@@ -128,3 +128,48 @@ export function splitSql(src: string): string[] {
   if (cur.trim()) out.push(cur.trim());
   return out;
 }
+
+export type HistoryAcknowledgement = { filename: string; neonChecksum: string; kind: "file-removed" | "edited-after-apply" };
+export type HistoryFinding = {
+  filename: string;
+  problem: "missing-file" | "checksum-drift" | "acknowledged-file-present";
+  recorded: string;
+  file?: string;
+};
+
+/**
+ * Compares every applied row with the files in db/ and the acknowledged list.
+ * A row passes when its file matches, or when filename AND recorded checksum
+ * are acknowledged. Files that are not applied yet are pending, not findings.
+ */
+export function historyFindings(
+  applied: readonly AppliedMigration[],
+  current: ReadonlyMap<string, string>,
+  acknowledged: readonly HistoryAcknowledgement[],
+): HistoryFinding[] {
+  const ack = new Map(acknowledged.map((a) => [a.filename, a]));
+  const out: HistoryFinding[] = [];
+  for (const row of applied) {
+    const file = current.get(row.filename);
+    const known = ack.get(row.filename);
+    const acked = known?.neonChecksum === row.checksum;
+    if (file === undefined) {
+      if (!(acked && known.kind === "file-removed")) out.push({ filename: row.filename, problem: "missing-file", recorded: row.checksum });
+      continue;
+    }
+    if (acked && known.kind === "file-removed") {
+      out.push({ filename: row.filename, problem: "acknowledged-file-present", recorded: row.checksum, file });
+      continue;
+    }
+    if (file !== row.checksum && !(acked && known.kind === "edited-after-apply")) {
+      out.push({ filename: row.filename, problem: "checksum-drift", recorded: row.checksum, file });
+    }
+  }
+  return out;
+}
+
+/** Files in db/ that have no row in schema_migrations yet. */
+export function pendingFiles(applied: readonly AppliedMigration[], files: readonly string[]): string[] {
+  const done = new Set(applied.map((r) => r.filename));
+  return orderMigrationFiles(files).filter((f) => !done.has(f));
+}
