@@ -208,5 +208,8 @@
   "console.billing.limitsText": "Quand une requête API dépasse une limite, vous recevez une erreur 429 avec un en-tête Retry-After. Attendez ce nombre de secondes avant de réessayer.",
   "console.billing.fairUseTitle": "Usage loyal",
   "console.billing.fairUseText": "Utilisez l'API pour de vraies intégrations et de l'automatisation. En cas de charge excessive, de scraping ou de trafic suspect, ROUT peut ralentir, suspendre ou révoquer l'accès immédiatement.",
-  "console.billing.termsLink": "Lire les conditions d'utilisation de l'API"
+  "console.billing.termsLink": "Lire les conditions d'utilisation de l'API",
+  "admin.forbidden.title": "Aucun accès à l'administration",
+  "admin.forbidden.body": "Cette partie de ROUT est réservée aux administrateurs. Votre compte n'a pas de droits d'administration.",
+  "admin.forbidden.back": "Retour à votre tableau de bord"
 }

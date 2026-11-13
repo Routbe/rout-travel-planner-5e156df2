@@ -1,5 +1,6 @@
 import { pathCardMeta } from "@/lib/path-cards";
 import { createFileRoute } from "@tanstack/react-router";
+import { studioPageParam } from "@/lib/studio-page-param";
 import Page from "@/components/imported-pages/Studio";
 import QrGenerator from "@/components/imported-pages/Index";
 
@@ -10,6 +11,7 @@ import QrGenerator from "@/components/imported-pages/Index";
  */
 export const Route = createFileRoute("/studio")({
   validateSearch: (search: Record<string, unknown>) => ({
+    page: studioPageParam(search["page"]),
     mode: search["mode"] === "qr" ? ("qr" as const) : undefined,
     type: typeof search["type"] === "string" ? (search["type"] as string) : undefined,
     url: typeof search["url"] === "string" ? (search["url"] as string) : undefined,
