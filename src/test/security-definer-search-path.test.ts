@@ -53,19 +53,60 @@ const BATCH_1 = [
   "public.handle_new_user()",
 ];
 
+const BATCH_2 = [
+  "public.rout_is_workspace_member(ws uuid)",
+  "public.rout_workspace_role(ws uuid)",
+  "public.rout_workspace_team(p_ws uuid)",
+  "public.rout_accept_workspace_invites(p_email text)",
+  "public.rout_transfer_by_token(p_hash text)",
+  "public.rout_transfers_for_email(p_email text)",
+  "public.workspace_may_drop_suffix(ws_plan text, ws uuid)",
+  "public.rout_public_workspace(p_slug text)",
+  "public.rout_public_workspace_relme(p_slug text)",
+  "public.rout_workspace_atproto_did(p_slug text, p_domain text)",
+  "public.rout_workspace_slug_for_domain(p_domain text)",
+  "public.rout_workspace_slug_taken(p_slug text)",
+  "public.workspace_slug_for_root_alias(h text)",
+  "public.rout_migrated_workspace_for_handle(p_handle text, p_space text)",
+  "public.rout_record_signup_age(p_email text, p_dob date, p_parent_email text, p_token_hash text)",
+  "public.rout_user_is_minor(p_user_id uuid)",
+  "public.rout_parent_lookup(p_token_hash text)",
+  "public.rout_parent_approve_consent(p_token_hash text)",
+  "public.rout_parent_set_qa_level(p_token_hash text, p_level qa_permission_level)",
+  "public.rout_parent_request_payment(p_user_id uuid, p_token_hash text, p_details jsonb)",
+  "public.rout_parent_mark_payment(p_token_hash text)",
+  "public.rout_agent_sandbox_register(p_key_hash text, p_pow_hash text, p_ip_bucket text, p_agent_name text)",
+  "public.rout_agent_sandbox_context(p_key_hash text)",
+  "public.rout_agent_sandbox_provision(p_key_hash text, p_name text, p_slug text, p_description text, p_token_hash text, p_code_hash text, p_draft jsonb)",
+  "public.rout_agent_sandbox_patch_draft(p_key_hash text, p_fields jsonb, p_prefs jsonb)",
+  "public.rout_agent_sandbox_set_apps(p_key_hash text, p_apps jsonb)",
+  "public.rout_agent_sandbox_state(p_key_hash text)",
+  "public.rout_purge_expired_agent_sandboxes()",
+  "public.rout_agent_provision_workspace(p_client_id text, p_name text, p_slug text, p_description text, p_token_hash text)",
+  "public.rout_agent_claim_preview(p_token_hash text)",
+  "public.rout_claim_agent_workspace(p_token_hash text)",
+  "public.rout_claim_agent_workspace_v2(p_hash text)",
+  "public.rout_agent_audit_log(p_workspace_id uuid, p_user_id uuid, p_client_id text, p_action text, p_target_table text, p_target_id text, p_previous jsonb, p_new jsonb)",
+  "public.rout_agent_audit_mark_reverted(p_log_id uuid)",
+  "public.rout_agent_audit_revert_workspace(p_workspace_id uuid)",
+  "public.rout_purge_unclaimed_agent_workspaces()",
+];
+
 describe("SECURITY DEFINER functions in the schema snapshot", () => {
   it("are pinned to pg_catalog unless on the legacy list, and the list has no stale entries", () => {
     expect(definers.length).toBeGreaterThan(300);
     expect(definerFindings(definers, LEGACY_DEFINER_SEARCH_PATH)).toEqual([]);
   });
 
-  it("batch 1 (cards, vault, sign-in) is pinned and off the legacy list; 115 remain", () => {
-    for (const key of BATCH_1) {
+  it("batch 1 (cards, vault, sign-in) and batch 2 (workspaces, parents, agents) are pinned and off the legacy list; 79 remain", () => {
+    expect(BATCH_1).toHaveLength(21);
+    expect(BATCH_2).toHaveLength(36);
+    for (const key of [...BATCH_1, ...BATCH_2]) {
       expect(definers.find((f) => f.key === key)?.searchPath, key).toEqual(["pg_catalog"]);
       expect(LEGACY_DEFINER_SEARCH_PATH, key).not.toContain(key);
     }
-    expect(LEGACY_DEFINER_SEARCH_PATH).toHaveLength(115);
-    expect(new Set(LEGACY_DEFINER_SEARCH_PATH).size).toBe(115);
+    expect(LEGACY_DEFINER_SEARCH_PATH).toHaveLength(79);
+    expect(new Set(LEGACY_DEFINER_SEARCH_PATH).size).toBe(79);
   });
 
   it("vault_enclave has no exception at all", () => {
@@ -96,8 +137,9 @@ describe("SECURITY DEFINER functions in the schema snapshot", () => {
 describe("migration files from 0255 on", () => {
   const guarded = listMigrationFiles(DB_DIR).filter(guardedMigration);
 
-  it("include 0255 and none sets a search_path other than pg_catalog", () => {
+  it("include 0255 and 0256 and none sets a search_path other than pg_catalog", () => {
     expect(guarded).toContain("0255_definer_search_path_cards_vault_auth.sql");
+    expect(guarded).toContain("0256_definer_search_path_workspaces_parents_agents.sql");
     for (const file of guarded) expect(definerMigrationViolations(readFileSync(join(DB_DIR, file), "utf8")), file).toEqual([]);
   });
 
@@ -106,6 +148,15 @@ describe("migration files from 0255 on", () => {
     const statements = sql.split(";").map((s) => s.trim()).filter(Boolean);
     expect(statements).toHaveLength(22);
     for (const s of statements) expect(s).toMatch(/^(alter function public\.\w+\([^)]*\) set search_path = pg_catalog|revoke execute on function public\.rout_physical_key_audit\(\) from public)$/);
+  });
+
+  it("0256 only changes search_path settings, one statement per batch 2 function", () => {
+    const sql = readFileSync(join(DB_DIR, "0256_definer_search_path_workspaces_parents_agents.sql"), "utf8").replace(/--[^\n]*/g, "");
+    const statements = sql.split(";").map((s) => s.trim()).filter(Boolean);
+    expect(statements).toHaveLength(36);
+    for (const s of statements) expect(s).toMatch(/^alter function public\.\w+\([^)]*\) set search_path = pg_catalog$/);
+    const names = statements.map((s) => s.match(/^alter function public\.(\w+)\(/)?.[1]).sort();
+    expect(names).toEqual(BATCH_2.map((k) => k.match(/^public\.(\w+)\(/)?.[1]).sort());
   });
 
   it("the lint rejects a definer without pg_catalog and accepts a pinned one", () => {
