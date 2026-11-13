@@ -10,6 +10,11 @@
  *
  * Remaining after 0255 (batch 1: cards, vault, sign-in): 115.
  * Remaining after 0256 (batch 2: workspaces, parental consent, agents): 79.
+ *
+ * A function leaves this list in the same change as the migration that pins
+ * it, and is recorded under that migration in HARDENED_BY_MIGRATION. A fresh
+ * database replays the older migrations before the pinning one, so the runner
+ * guard after migration N also allows what a later migration still pins.
  */
 export const LEGACY_DEFINER_SEARCH_PATH: readonly string[] = [
   "public.claim_referral(p_referrer text)",
@@ -92,3 +97,76 @@ export const LEGACY_DEFINER_SEARCH_PATH: readonly string[] = [
   "public.wallet_credit(_user_id uuid, _amount_cents integer, _kind text, _description text, _reference text)",
   "public.wallet_debit(_user_id uuid, _amount_cents integer, _description text, _reference text)",
 ];
+
+/** Functions removed from the list above, keyed by the migration that pins them. */
+export const HARDENED_BY_MIGRATION: Readonly<Record<number, readonly string[]>> = {
+  255: [
+    "public.rout_card_design(s text)",
+    "public.rout_card_frozen(s text)",
+    "public.rout_card_generation(u uuid)",
+    "public.rout_card_status_by_serial(s text)",
+    "public.rout_card_status_by_hardware(hid uuid)",
+    "public.rout_card_token_use(n text, exp timestamp with time zone)",
+    "public.rout_hw_issue_challenge(hid uuid, nh text)",
+    "public.rout_hw_consume_challenge(hid uuid, nh text)",
+    "public.rout_hw_record_scan(hid uuid, ok boolean)",
+    "public.rout_pair_factory_card(hid uuid, proof_hash text, serial text)",
+    "public.rout_physical_key_audit()",
+    "public.rout_ephemeral_vault_create(p_vault_id uuid, p_key_hash text, p_vault_hash text, p_payload text)",
+    "public.rout_ephemeral_vault_read(p_vault_id uuid)",
+    "public.rout_ephemeral_vault_commit(p_vault_id uuid, p_vault_hash text, p_name text, p_slug text, p_blob text, p_key_id text)",
+    "public.rout_purge_expired_ephemeral_vaults()",
+    "public.signin_guard_status(_identity_hash text)",
+    "public.signin_guard_record(_identity_hash text, _success boolean)",
+    "public.rout_resolve_account(p_identifier text)",
+    "public.email_freeze_owner(token_hash text)",
+    "public.delete_account()",
+    "public.handle_new_user()",
+  ],
+  256: [
+    "public.rout_is_workspace_member(ws uuid)",
+    "public.rout_workspace_role(ws uuid)",
+    "public.rout_workspace_team(p_ws uuid)",
+    "public.rout_accept_workspace_invites(p_email text)",
+    "public.rout_transfer_by_token(p_hash text)",
+    "public.rout_transfers_for_email(p_email text)",
+    "public.workspace_may_drop_suffix(ws_plan text, ws uuid)",
+    "public.rout_public_workspace(p_slug text)",
+    "public.rout_public_workspace_relme(p_slug text)",
+    "public.rout_workspace_atproto_did(p_slug text, p_domain text)",
+    "public.rout_workspace_slug_for_domain(p_domain text)",
+    "public.rout_workspace_slug_taken(p_slug text)",
+    "public.workspace_slug_for_root_alias(h text)",
+    "public.rout_migrated_workspace_for_handle(p_handle text, p_space text)",
+    "public.rout_record_signup_age(p_email text, p_dob date, p_parent_email text, p_token_hash text)",
+    "public.rout_user_is_minor(p_user_id uuid)",
+    "public.rout_parent_lookup(p_token_hash text)",
+    "public.rout_parent_approve_consent(p_token_hash text)",
+    "public.rout_parent_set_qa_level(p_token_hash text, p_level qa_permission_level)",
+    "public.rout_parent_request_payment(p_user_id uuid, p_token_hash text, p_details jsonb)",
+    "public.rout_parent_mark_payment(p_token_hash text)",
+    "public.rout_agent_sandbox_register(p_key_hash text, p_pow_hash text, p_ip_bucket text, p_agent_name text)",
+    "public.rout_agent_sandbox_context(p_key_hash text)",
+    "public.rout_agent_sandbox_provision(p_key_hash text, p_name text, p_slug text, p_description text, p_token_hash text, p_code_hash text, p_draft jsonb)",
+    "public.rout_agent_sandbox_patch_draft(p_key_hash text, p_fields jsonb, p_prefs jsonb)",
+    "public.rout_agent_sandbox_set_apps(p_key_hash text, p_apps jsonb)",
+    "public.rout_agent_sandbox_state(p_key_hash text)",
+    "public.rout_purge_expired_agent_sandboxes()",
+    "public.rout_agent_provision_workspace(p_client_id text, p_name text, p_slug text, p_description text, p_token_hash text)",
+    "public.rout_agent_claim_preview(p_token_hash text)",
+    "public.rout_claim_agent_workspace(p_token_hash text)",
+    "public.rout_claim_agent_workspace_v2(p_hash text)",
+    "public.rout_agent_audit_log(p_workspace_id uuid, p_user_id uuid, p_client_id text, p_action text, p_target_table text, p_target_id text, p_previous jsonb, p_new jsonb)",
+    "public.rout_agent_audit_mark_reverted(p_log_id uuid)",
+    "public.rout_agent_audit_revert_workspace(p_workspace_id uuid)",
+    "public.rout_purge_unclaimed_agent_workspaces()",
+  ],
+};
+
+/** What may still be unpinned once migration `migration` has run: the list above plus what later migrations pin. */
+export function legacyAllowedAfter(migration: number): readonly string[] {
+  const later = Object.entries(HARDENED_BY_MIGRATION)
+    .filter(([n]) => Number(n) > migration)
+    .flatMap(([, keys]) => keys);
+  return [...LEGACY_DEFINER_SEARCH_PATH, ...later];
+}
