@@ -50,6 +50,7 @@ AS $function$
       order by r.weekday, r.start_minute, r.id limit 1),
     'UTC')
 $function$;
+
 alter function public.rout_booking_stale_hosts(uuid, interval) set search_path = pg_catalog;
 
 -- Public booking page
