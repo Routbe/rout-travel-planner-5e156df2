@@ -47,6 +47,10 @@ use the editor.
 ## Discover pages
 - Product landing pages live at /discover/<topic>; slugs, main buttons and detail links come from src/lib/discover/topics.ts and per-locale copy from copy.<locale>.ts, with accents in src/styles/discover.css. Why: one source keeps the home page, detail-page buttons and sitemap pointing at the same product pages instead of the sign-in wall.
 
+## Admin portal and Studio page routing
+- The admin portal layout decides access from adminAccessDecision before rendering any admin screen, treating a failed permission lookup as no access; server-side checks stay unchanged. Why: non-admins must never see an admin screen or fire admin requests.
+- /studio accepts only the search value page=booking (src/lib/studio-page-param.ts) and Studio opens its bookings panel from that routed value, not from window.location. Why: /studio/booking must reliably land on the bookings page and unknown values must not leak into the address.
+
 ## Vault enclave
 - Raw identifiers live only as sealed 'RVE1' envelopes in the vault_enclave schema (db/0221); rout_app has no table rights and reaches it only through register_step_up_proof, store_opaque_token and retrieve_opaque_token, with the caller taken from the transaction context. Why: a compromised app role can neither read ciphertext in bulk nor act for another member.
 - Outside the vault, data travels only as opaque refs validated by src/lib/vault/token-boundary.ts; refs are minted by the database, never by callers. Why: one strict boundary keeps raw values out of the browser, logs and APIs.
