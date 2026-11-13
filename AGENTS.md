@@ -34,6 +34,7 @@ use the editor.
 - Preserve managed project metadata when importing source; register generated backend integrations and their auth attachment only when this project has its own backend connected. Why: the app signs in through its own auth, and a missing backend connection breaks every page that calls the server.
 - Keep imported compiler options and MDX compilation while retaining the managed deployment target so source code compiles in this environment.
 - Never copy source credentials or apply external database scripts automatically; original accounts and services require explicit compatible configuration.
+- Read docs/HANDOVER.md before touching security, vault, card, auth or migration code; its numbered sections stay verbatim and corrections go only in its appendix. Why: it is the owner's handover dossier with the binding invariants and open items.
 
 ## Browser cryptography
 - Browser encryption, protocol verification and private-key operations use the existing typed crypto-enclave worker with ordered requests, transferred buffers and no UI fallback; shared crypto helpers may still run in server-only handlers. Why: preserves ciphertext compatibility without exposing derived keys to React.

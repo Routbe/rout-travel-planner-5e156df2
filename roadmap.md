@@ -12,7 +12,7 @@
 - [x] Blocking or replacing the ROUT card revokes the member's physical cards (db/0253)
 - [x] Test on real hardware: Android Chrome NFC scan, iPhone tap via /t, desktop + signed-in phone (owner-tested)
 - [x] /t asks "Ja, ik bevestig" before a tap completes an open card step-up (an unrelated tap can no longer approve a request from another session)
-- [ ] Re-test the /t confirm button on iPhone (changed after the owner's hardware test)
+- [x] Re-test the /t confirm button on iPhone (changed after the owner's hardware test; owner-confirmed 2026-11-13)
 - [x] Admin batch screen (/admin/cards): create, station config export, manifest import; member activation (db/0246, live on Neon)
 
 ## Developer console
