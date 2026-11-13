@@ -38,4 +38,4 @@
 ## Admin portal and Studio routing
 - [x] Admin portal refuses non-admins in the UI itself (adminAccessDecision + AdminForbidden screen, nl/en/fr/de); server checks unchanged
 - [x] /studio/booking lands on the bookings page: /studio accepts page=booking (src/lib/studio-page-param.ts) and Studio opens bookings from that routed value
-- [ ] Signed-in click-through of both screens in the preview once the app database connection (DATABASE_URL, rout_app) is set
+- [ ] Signed-in click-through of the admin refusal screen and the bookings page: owner verifies on the Vercel deploy (no DATABASE_URL requested for the preview)
