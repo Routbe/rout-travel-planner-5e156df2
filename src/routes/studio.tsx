@@ -10,7 +10,7 @@ import QrGenerator from "@/components/imported-pages/Index";
  * (publiek toegankelijk, net als voorheen op `/` en `/qr`).
  */
 export const Route = createFileRoute("/studio")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { page?: "booking"; mode?: "qr"; type?: string; url?: string; workspace?: string } => ({
     page: studioPageParam(search["page"]),
     mode: search["mode"] === "qr" ? ("qr" as const) : undefined,
     type: typeof search["type"] === "string" ? (search["type"] as string) : undefined,
