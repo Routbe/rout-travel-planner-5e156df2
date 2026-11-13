@@ -102,7 +102,7 @@ Bekend: dit bevestigingsscherm is nu alleen in het Nederlands (zie stap 8).
 | --- | --- | --- |
 | 7.1 | Ingelogd: open `/studio/booking` | Je komt op `/studio?page=booking` en het boekingenpaneel staat open |
 | 7.2 | Open `/studio?page=iets-anders` | Studio opent normaal; `page` verdwijnt uit het adres |
-| 7.3 | Uitgelogd: open `/studio/booking` | Je wordt naar inloggen gestuurd; na inloggen kom je bij de boekingen |
+| 7.3 | Uitgelogd: open `/studio/booking` | Je wordt naar inloggen gestuurd en ziet geen Studio-gegevens. Noteer waar je na inloggen uitkomt |
 
 ## 8. Talen
 
